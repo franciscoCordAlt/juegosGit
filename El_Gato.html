@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Gato - Tres en Raya</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg1: #0f172a;
+            --bg2: #1e1b4b;
+            --panel: rgba(15, 23, 42, .78);
+            --card: rgba(255, 255, 255, .08);
+            --border: rgba(255, 255, 255, .14);
+            --text: #f8fafc;
+            --muted: #cbd5e1;
+            --cell: rgba(255, 255, 255, .09);
+            --cell-hover: rgba(255, 255, 255, .16);
+            --accent1: #6366f1;
+            --accent2: #ec4899;
+            --x: #67e8f9;
+            --o: #f9a8d4;
+        }
+
+        body.light {
+            --bg1: #e0e7ff;
+            --bg2: #fce7f3;
+            --panel: rgba(255, 255, 255, .82);
+            --card: rgba(255, 255, 255, .68);
+            --border: rgba(15, 23, 42, .12);
+            --text: #172033;
+            --muted: #475569;
+            --cell: rgba(15, 23, 42, .06);
+            --cell-hover: rgba(99, 102, 241, .13);
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, .35), transparent 30%),
+                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, .28), transparent 30%),
+                linear-gradient(135deg, var(--bg1), var(--bg2));
+            color: var(--text);
+            padding: 24px;
+            transition: background .3s ease, color .3s ease;
+        }
+
+        .game {
+            width: min(520px, 100%);
+            padding: 28px;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: var(--panel);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, .35);
+            backdrop-filter: blur(14px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+
+        .header p {
+            margin: 7px 0 0;
+            color: var(--muted);
+        }
+
+        /* Pantalla inicial */
+        .setup {
+            display: block;
+        }
+
+        .setup.hidden,
+        .game-screen.hidden {
+            display: none;
+        }
+
+        .setup-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .setup-box h2 {
+            margin: 0 0 8px;
+            text-align: center;
+        }
+
+        .setup-box>p {
+            text-align: center;
+            color: var(--muted);
+            margin-top: 0;
+        }
+
+        .size-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 18px 0;
+        }
+
+        .size-option {
+            border: 2px solid var(--border);
+            background: var(--cell);
+            color: var(--text);
+            border-radius: 16px;
+            padding: 16px 8px;
+            cursor: pointer;
+            transition: .2s ease;
+        }
+
+        .size-option:hover {
+            background: var(--cell-hover);
+            transform: translateY(-2px);
+        }
+
+        .size-option.selected {
+            border-color: var(--accent1);
+            background: rgba(99, 102, 241, .18);
+        }
+
+        .size-option strong {
+            display: block;
+            font-size: 1.4rem;
+        }
+
+        .size-option span {
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        .theme-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin: 18px 0;
+            padding: 14px;
+            border-radius: 15px;
+            background: var(--cell);
+        }
+
+        .theme-row span {
+            color: var(--muted);
+        }
+
+        .theme-toggle {
+            width: 58px;
+            height: 32px;
+            border: 0;
+            border-radius: 20px;
+            padding: 4px;
+            background: #64748b;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .theme-toggle::after {
+            content: "";
+            display: block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            transition: .2s;
+        }
+
+        body.light .theme-toggle {
+            background: var(--accent1);
+        }
+
+        body.light .theme-toggle::after {
+            transform: translateX(26px);
+        }
+
+        .action {
+            width: 100%;
+            border: 0;
+            border-radius: 14px;
+            padding: 14px;
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--accent1), var(--accent2));
+            box-shadow: 0 8px 20px rgba(99, 102, 241, .25);
+            transition: transform .15s ease, filter .15s ease;
+        }
+
+        .action:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+        }
+
+        /* Juego */
+        .game-screen {
+            display: block;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            font-weight: 800;
+        }
+
+        .board-size-label {
+            color: var(--muted);
+            font-size: .85rem;
+        }
+
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .score {
+            padding: 10px 6px;
+            border-radius: 15px;
+            text-align: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+        }
+
+        .score strong {
+            display: block;
+            font-size: 1.3rem;
+        }
+
+        .score span {
+            color: var(--muted);
+            font-size: .76rem;
+        }
+
+        .board {
+            display: grid;
+            gap: 7px;
+            width: min(100%, 450px);
+            aspect-ratio: 1;
+            margin: auto;
+        }
+
+        .cell {
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+            border: 0;
+            border-radius: 13px;
+            background: var(--cell);
+            color: var(--text);
+            font-size: clamp(1.4rem, 10vw, 4.2rem);
+            font-weight: 900;
+            cursor: pointer;
+            transition: transform .15s ease, background .2s ease;
+            box-shadow: inset 0 0 0 1px var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: var(--cell-hover);
+        }
+
+        /* */
+        /* Previsualización difuminada al pasar el cursor */
+        .board[data-turn="X"] .cell:hover:not(:disabled)::before {
+            content: "X";
+            color: var(--x);
+            opacity: 0.35;
+            filter: blur(1px);
+            text-shadow: 0 0 12px var(--x);
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .board[data-turn="O"] .cell:hover:not(:disabled)::before {
+            content: "O";
+            color: var(--o);
+            opacity: 0.35;
+            filter: blur(1px);
+            text-shadow: 0 0 12px var(--o);
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .cell:disabled {
+            cursor: default;
+        }
+
+        .cell.x {
+            color: var(--x);
+            text-shadow: 0 0 18px rgba(34, 211, 238, .5);
+        }
+
+        .cell.o {
+            color: var(--o);
+            text-shadow: 0 0 18px rgba(244, 114, 182, .5);
+        }
+
+        .cell.win {
+            background: rgba(34, 211, 238, .18);
+            box-shadow: 0 0 20px rgba(34, 211, 238, .25),
+                inset 0 0 0 2px rgba(103, 232, 249, .45);
+            animation: pulse .7s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            to {
+                transform: scale(.96);
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .controls .action {
+            flex: 1;
+        }
+
+        .secondary {
+            background: var(--cell);
+            color: var(--text);
+            box-shadow: none;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            color: var(--muted);
+            font-size: .76rem;
+        }
+
+        @media (max-width: 430px) {
+            .game {
+                padding: 20px;
+            }
+
+            .size-options {
+                gap: 7px;
+            }
+
+            .size-option {
+                padding: 13px 5px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="game">
+
+        <header class="header">
+            <h1>🎮 El Gato</h1>
+            <p>Tres en raya</p>
+        </header>
+
+        <!-- CONFIGURACIÓN -->
+        <section class="setup" id="setup">
+            <div class="setup-box">
+                <h2>Configura tu partida</h2>
+                <p>Elige el tamaño del tablero antes de comenzar.</p>
+
+                <div class="size-options">
+                    <button class="size-option selected" data-size="3" type="button">
+                        <strong>3 × 3</strong>
+                        <span>Clásico</span>
+                    </button>
+
+                    <button class="size-option" data-size="4" type="button">
+                        <strong>4 × 4</strong>
+                        <span>Más difícil</span>
+                    </button>
+
+                    <button class="size-option" data-size="5" type="button">
+                        <strong>5 × 5</strong>
+                        <span>Desafío</span>
+                    </button>
+                </div>
+
+                <div class="theme-row">
+                    <div>
+                        <strong>🎨 Tema</strong><br>
+                        <span id="themeText">Oscuro</span>
+                    </div>
+
+                    <button class="theme-toggle" id="themeToggle" type="button"
+                        aria-label="Cambiar entre tema oscuro y claro">
+                    </button>
+                </div>
+
+                <button class="action" id="startGame" type="button">
+                    🚀 Comenzar partida
+                </button>
+            </div>
+        </section>
+
+        <!-- JUEGO -->
+        <section class="game-screen hidden" id="gameScreen">
+
+            <div class="game-info">
+                <div class="status" id="status">Turno del jugador X</div>
+                <div class="board-size-label" id="boardSizeLabel">Tablero 3 × 3</div>
+            </div>
+
+            <section class="scoreboard">
+                <div class="score">
+                    <strong id="scoreX">0</strong>
+                    <span>Jugador X</span>
+                </div>
+
+                <div class="score">
+                    <strong id="scoreDraw">0</strong>
+                    <span>Empates</span>
+                </div>
+
+                <div class="score">
+                    <strong id="scoreO">0</strong>
+                    <span>Jugador O</span>
+                </div>
+            </section>
+
+            <section class="board" id="board" aria-label="Tablero del gato"></section>
+
+            <div class="controls">
+                <button class="action" id="newGame" type="button">
+                    🔄 Nueva partida
+                </button>
+
+                <button class="action secondary" id="changeSettings" type="button">
+                    ⚙️ Configuración
+                </button>
+            </div>
+
+            <div class="footer">
+                Consigue la cantidad necesaria de símbolos en línea para ganar.
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const setup = document.getElementById("setup");
+        const gameScreen = document.getElementById("gameScreen");
+        const boardElement = document.getElementById("board");
+        const statusText = document.getElementById("status");
+        const boardSizeLabel = document.getElementById("boardSizeLabel");
+
+        const startGameBtn = document.getElementById("startGame");
+        const newGameBtn = document.getElementById("newGame");
+        const changeSettingsBtn = document.getElementById("changeSettings");
+        const themeToggle = document.getElementById("themeToggle");
+        const themeText = document.getElementById("themeText");
+
+        const sizeButtons = document.querySelectorAll(".size-option");
+
+        const scoreXEl = document.getElementById("scoreX");
+        const scoreOEl = document.getElementById("scoreO");
+        const scoreDrawEl = document.getElementById("scoreDraw");
+
+        let boardSize = 3;
+        let board = [];
+        let currentPlayer = "X";
+        let gameActive = false;
+
+        let score = {
+            X: 0,
+            O: 0,
+            draw: 0
+        };
+
+        function getWinLength() {
+            if (boardSize === 3) return 3;
+            if (boardSize === 4) return 4;
+            return 4;
+        }
+
+        sizeButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                sizeButtons.forEach(btn => btn.classList.remove("selected"));
+                button.classList.add("selected");
+                boardSize = Number(button.dataset.size);
+            });
+        });
+
+        /* Cambiar tema */
+        themeToggle.addEventListener("click", () => {
+            document.body.classList.toggle("light");
+
+            const isLight = document.body.classList.contains("light");
+            themeText.textContent = isLight ? "Claro" : "Oscuro";
+        });
+
+        /* Comenzar */
+        startGameBtn.addEventListener("click", () => {
+            setup.classList.add("hidden");
+            gameScreen.classList.remove("hidden");
+
+            score = { X: 0, O: 0, draw: 0 };
+            updateScore();
+            startRound();
+        });
+
+        /* Volver a configuración */
+        changeSettingsBtn.addEventListener("click", () => {
+            gameScreen.classList.add("hidden");
+            setup.classList.remove("hidden");
+        });
+
+        /* Nueva partida */
+        newGameBtn.addEventListener("click", startRound);
+
+        function startRound() {
+            const totalCells = boardSize * boardSize;
+
+            board = new Array(totalCells).fill("");
+            currentPlayer = "X";
+            gameActive = true;
+
+            boardSizeLabel.textContent = `Tablero ${boardSize} × ${boardSize}`;
+            statusText.textContent = "Turno del jugador X";
+
+            updateTurnAttribute();
+            createBoard();
+        }
+
+        function updateTurnAttribute() {
+            if (gameActive) {
+                boardElement.setAttribute("data-turn", currentPlayer);
+            } else {
+                boardElement.removeAttribute("data-turn");
+            }
+        }
+
+        /* Crear tablero dinámicamente */
+        function createBoard() {
+            boardElement.innerHTML = "";
+
+            boardElement.style.gridTemplateColumns =
+                `repeat(${boardSize}, 1fr)`;
+
+            boardElement.style.gridTemplateRows =
+                `repeat(${boardSize}, 1fr)`;
+
+            board.forEach((value, index) => {
+                const cell = document.createElement("button");
+
+                cell.type = "button";
+                cell.className = "cell";
+                cell.dataset.index = index;
+                cell.setAttribute(
+                    "aria-label",
+                    `Casilla ${index + 1}`
+                );
+
+                cell.addEventListener("click", play);
+
+                boardElement.appendChild(cell);
+            });
+        }
+
+        function play(event) {
+            const index = Number(event.currentTarget.dataset.index);
+
+            if (!gameActive || board[index] !== "") {
+                return;
+            }
+
+            board[index] = currentPlayer;
+
+            event.currentTarget.textContent = currentPlayer;
+            event.currentTarget.classList.add(
+                currentPlayer.toLowerCase()
+            );
+
+            event.currentTarget.disabled = true;
+
+            const result = checkWinner();
+
+            if (result) {
+                finishGame(result);
+                return;
+            }
+
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            updateTurnAttribute();
+
+            statusText.textContent =
+                `Turno del jugador ${currentPlayer}`;
+        }
+
+        function checkWinner() {
+            const winLength = getWinLength();
+
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+
+                    const player = board[row * boardSize + col];
+
+                    if (!player) continue;
+
+                    /* Horizontal */
+                    if (col + winLength <= boardSize) {
+                        const combination = [];
+
+                        for (let i = 0; i < winLength; i++) {
+                            combination.push(
+                                row * boardSize + col + i
+                            );
+                        }
+
+                        if (combination.every(index => board[index] === player)) {
+                            return {
+                                winner: player,
+                                combination
+                            };
+                        }
+                    }
+
+                    /* Vertical */
+                    if (row + winLength <= boardSize) {
+                        const combination = [];
+
+                        for (let i = 0; i < winLength; i++) {
+                            combination.push(
+                                (row + i) * boardSize + col
+                            );
+                        }
+
+                        if (combination.every(index => board[index] === player)) {
+                            return {
+                                winner: player,
+                                combination
+                            };
+                        }
+                    }
+
+                    /* Diagonal hacia abajo */
+                    if (
+                        row + winLength <= boardSize &&
+                        col + winLength <= boardSize
+                    ) {
+                        const combination = [];
+
+                        for (let i = 0; i < winLength; i++) {
+                            combination.push(
+                                (row + i) * boardSize + (col + i)
+                            );
+                        }
+
+                        if (combination.every(index => board[index] === player)) {
+                            return {
+                                winner: player,
+                                combination
+                            };
+                        }
+                    }
+
+                    /* Diagonal hacia arriba */
+                    if (
+                        row - winLength + 1 >= 0 &&
+                        col + winLength <= boardSize
+                    ) {
+                        const combination = [];
+
+                        for (let i = 0; i < winLength; i++) {
+                            combination.push(
+                                (row - i) * boardSize + (col + i)
+                            );
+                        }
+
+                        if (combination.every(index => board[index] === player)) {
+                            return {
+                                winner: player,
+                                combination
+                            };
+                        }
+                    }
+                }
+            }
+
+            if (board.every(cell => cell !== "")) {
+                return {
+                    winner: "draw",
+                    combination: []
+                };
+            }
+
+            return null;
+        }
+
+        function finishGame(result) {
+            gameActive = false;
+            updateTurnAttribute();
+
+            const cells = boardElement.querySelectorAll(".cell");
+
+            if (result.winner === "draw") {
+                score.draw++;
+                statusText.textContent = "🤝 ¡Empate!";
+            } else {
+                score[result.winner]++;
+
+                statusText.textContent =
+                    `🏆 ¡Ganó el jugador ${result.winner}!`;
+
+                result.combination.forEach(index => {
+                    cells[index].classList.add("win");
+                });
+            }
+
+            cells.forEach(cell => {
+                cell.disabled = true;
+            });
+
+            updateScore();
+        }
+
+        function updateScore() {
+            scoreXEl.textContent = score.X;
+            scoreOEl.textContent = score.O;
+            scoreDrawEl.textContent = score.draw;
+        }
+    </script>
+
+</body>
+
+</html>
