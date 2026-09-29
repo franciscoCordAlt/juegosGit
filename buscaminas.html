@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buscaminas Pro - Modo Imposible</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ledRed: '#ff2222',
+                        ledBg: '#1e0000',
+                        impossibleRed: '#dc2626'
+                    },
+                    fontFamily: {
+                        digital: ['Orbitron', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Pantallas LED de números estilo 7 segmentos */
+        .led-display {
+            font-family: 'Orbitron', monospace;
+            background-color: #1a0000;
+            color: #ff2222;
+            text-shadow: 0 0 8px rgba(255, 34, 34, 0.8), 0 0 12px rgba(255, 0, 0, 0.4);
+            border: 2px solid #3a0808;
+            letter-spacing: 2px;
+        }
+
+        /* LED rojo especial en Modo Imposible */
+        .impossible-active .led-display {
+            color: #ff0055;
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.9), 0 0 16px rgba(255, 0, 0, 0.6);
+            border-color: #550011;
+        }
+
+        /* Tamaños y renderizado de celdas */
+        .cell {
+            width: 36px;
+            height: 36px;
+            font-weight: 800;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.1s, transform 0.05s;
+        }
+
+        @media (max-width: 640px) {
+            .cell {
+                width: 30px;
+                height: 30px;
+                font-size: 0.95rem;
+            }
+        }
+
+        /* Biselado 3D retro */
+        .cell-unrevealed {
+            border-top: 3px solid rgba(255, 255, 255, 0.45);
+            border-left: 3px solid rgba(255, 255, 255, 0.45);
+            border-bottom: 3px solid rgba(0, 0, 0, 0.35);
+            border-right: 3px solid rgba(0, 0, 0, 0.35);
+        }
+
+        .impossible-active .cell-unrevealed {
+            border-top: 3px solid rgba(239, 68, 68, 0.5);
+            border-left: 3px solid rgba(239, 68, 68, 0.5);
+            border-bottom: 3px solid rgba(0, 0, 0, 0.6);
+            border-right: 3px solid rgba(0, 0, 0, 0.6);
+        }
+
+        /* Colores de los números */
+        .num-1 { color: #2563eb; }
+        .num-2 { color: #16a34a; }
+        .num-3 { color: #dc2626; }
+        .num-4 { color: #1e3a8a; }
+        .num-5 { color: #854d0e; }
+        .num-6 { color: #0891b2; }
+        .num-7 { color: #111827; }
+        .dark .num-7 { color: #f3f4f6; }
+        .num-8 { color: #6b7280; }
+
+        /* Sacudida de pantalla al estallar una mina */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            20% { transform: translate(-10px, 8px) rotate(-3deg); }
+            40% { transform: translate(10px, -8px) rotate(3deg); }
+            60% { transform: translate(-6px, 5px) rotate(-1deg); }
+            80% { transform: translate(6px, -5px) rotate(1deg); }
+        }
+
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        /* Brillo de advertencia para Modo Imposible */
+        @keyframes glitchGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(220, 38, 38, 0.5), inset 0 0 15px rgba(220, 38, 38, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9), inset 0 0 25px rgba(220, 38, 38, 0.4); }
+        }
+
+        .impossible-frame {
+            animation: glitchGlow 2s infinite ease-in-out;
+            border-color: #dc2626 !important;
+        }
+
+        /* Canvas para Confeti */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Encabezado Principal -->
+    <header class="w-full bg-white dark:bg-slate-800 shadow-md border-b border-slate-200 dark:border-slate-700 py-3 px-4">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-2">
+                <span id="header-logo" class="text-2xl transition-transform hover:scale-125 cursor-pointer" onclick="openModal('modal-emoji-theme')" title="Cambiar Tema Emoji">💣</span>
+                <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent">
+                    BUSCAMINAS PRO
+                </h1>
+                <span id="impossible-badge" class="hidden px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-red-600 text-white rounded-full animate-pulse shadow-md">
+                    💀 MODO IMPOSIBLE
+                </span>
+            </div>
+
+            <!-- Botones de Utilidades -->
+            <div class="flex items-center gap-2">
+                <button onclick="openModal('modal-emoji-theme')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 font-bold text-xs hover:bg-indigo-100 dark:hover:bg-indigo-900 transition shadow-sm">
+                    <span id="current-theme-icon" class="text-base">😊</span>
+                    <span class="hidden sm:inline">Temas</span>
+                </button>
+                <button id="btn-audio" onclick="toggleAudio()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Activar/Desactivar Sonido">
+                    <span id="icon-audio">🔊</span>
+                </button>
+                <button id="btn-theme" onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Modo Claro/Oscuro">
+                    <span id="icon-theme">🌙</span>
+                </button>
+                <button onclick="openModal('modal-scores')" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Mejores Tiempos y Estadísticas">
+                    🏆
+                </button>
+                <button onclick="openModal('modal-help')" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition" title="Instrucciones">
+                    ❓
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 flex flex-col items-center justify-start gap-4">
+        
+        <!-- Seleccionador de Dificultad -->
+        <div class="flex flex-wrap justify-center gap-2 w-full max-w-2xl">
+            <button id="diff-beginner" onclick="setDifficulty('beginner')" class="diff-btn flex-1 py-1.5 px-2.5 text-xs sm:text-sm font-bold rounded-xl bg-indigo-600 text-white shadow transition hover:bg-indigo-700">
+                😊 Principiante
+            </button>
+            <button id="diff-intermediate" onclick="setDifficulty('intermediate')" class="diff-btn flex-1 py-1.5 px-2.5 text-xs sm:text-sm font-bold rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition">
+                😎 Intermedio
+            </button>
+            <button id="diff-expert" onclick="setDifficulty('expert')" class="diff-btn flex-1 py-1.5 px-2.5 text-xs sm:text-sm font-bold rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition">
+                🤯 Experto
+            </button>
+            <!-- BOTÓN MODO IMPOSIBLE -->
+            <button id="diff-impossible" onclick="setDifficulty('impossible')" class="diff-btn flex-1 py-1.5 px-2.5 text-xs sm:text-sm font-black rounded-xl bg-slate-200 dark:bg-slate-700 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white transition shadow-sm">
+                💀 IMPOSIBLE
+            </button>
+            <button id="diff-custom" onclick="openModal('modal-custom')" class="diff-btn py-1.5 px-3 text-xs sm:text-sm font-bold rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition" title="Configuración Personalizada">
+                ⚙️
+            </button>
+        </div>
+
+        <!-- BARRA RÁPIDA DE EMOJIS -->
+        <div class="w-full max-w-xl bg-white dark:bg-slate-800 p-2 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center gap-2 overflow-x-auto custom-scroll">
+            <span class="text-xs font-extrabold text-slate-400 dark:text-slate-500 uppercase px-2 whitespace-nowrap">Estilo:</span>
+            <div id="quick-theme-pills" class="flex items-center gap-1.5">
+                <!-- Dinámico con JS -->
+            </div>
+        </div>
+
+        <!-- Tablero del Buscaminas -->
+        <div id="game-frame" class="bg-slate-300 dark:bg-slate-800 p-3 sm:p-5 rounded-2xl shadow-2xl border-4 border-slate-400 dark:border-slate-700 flex flex-col items-center max-w-full transition-all duration-300">
+            
+            <!-- Panel Superior con Marcadores LED y Rostro -->
+            <div class="w-full bg-slate-200 dark:bg-slate-900 p-3 rounded-xl border-2 border-slate-400 dark:border-slate-700 flex justify-between items-center mb-4 shadow-inner">
+                
+                <!-- Contador de Minas -->
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Minas</span>
+                    <div id="mine-counter" class="led-display text-2xl sm:text-3xl font-black px-3 py-1 rounded-md">
+                        010
+                    </div>
+                </div>
+
+                <!-- Botón Principal de Carita con Insignia de Cambio Directo -->
+                <div class="relative group">
+                    <button id="btn-face" onclick="handleFaceClick(event)" class="text-3xl sm:text-4xl p-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 shadow-md active:translate-y-0.5 active:shadow-inner hover:scale-105 transition duration-150 flex items-center justify-center relative">
+                        <span id="face-emoji">😊</span>
+                    </button>
+                    <button onclick="cycleEmojiTheme(); event.stopPropagation();" class="absolute -top-1 -right-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full w-6 h-6 text-[10px] flex items-center justify-center font-bold shadow-md transition hover:scale-110" title="Cambiar Emojis">
+                        🎨
+                    </button>
+                </div>
+
+                <!-- Cronómetro LED -->
+                <div class="flex flex-col items-center">
+                    <span id="timer-label" class="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">Tiempo</span>
+                    <div id="timer-counter" class="led-display text-2xl sm:text-3xl font-black px-3 py-1 rounded-md">
+                        000
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selector Móvil Táctil -->
+            <div class="flex sm:hidden justify-center items-center gap-3 mb-3 w-full">
+                <span class="text-xs font-semibold text-slate-600 dark:text-slate-400">Táctil:</span>
+                <div class="bg-slate-200 dark:bg-slate-700 p-1 rounded-xl flex gap-1 border border-slate-300 dark:border-slate-600">
+                    <button id="mode-reveal" onclick="setMobileMode('reveal')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow">
+                        ⛏️️ Descubrir
+                    </button>
+                    <button id="mode-flag" onclick="setMobileMode('flag')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600">
+                        <span id="mobile-flag-icon">🚩</span> Bandera
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rejilla del Tablero -->
+            <div id="board-scroll-container" class="max-w-full max-h-[60vh] overflow-auto custom-scroll p-1.5 rounded-xl bg-slate-400 dark:bg-slate-950 border-2 border-slate-400 dark:border-slate-800">
+                <div id="board" class="grid gap-0.5 select-none touch-none"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: SELECTOR DE TEMAS DE EMOJIS -->
+    <div id="modal-emoji-theme" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto custom-scroll">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    🎨 Selector de Emojis
+                </h2>
+                <button onclick="closeModal('modal-emoji-theme')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold">✕</button>
+            </div>
+            
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Selecciona tu paquete de emojis favorito para personalizar las caritas, minas y banderas:
+            </p>
+
+            <div id="emoji-theme-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                <!-- Se llena con JS -->
+            </div>
+
+            <!-- Creador Personalizado -->
+            <div class="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
+                <h3 class="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 mb-3">O Personaliza tus Emojis</h3>
+                <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+                    <div>
+                        <label class="block text-[10px] font-extrabold text-slate-500 mb-1">Mina</label>
+                        <input type="text" id="custom-emoji-mine" maxlength="2" value="💣" class="w-full text-center py-1.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-lg font-bold border dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-extrabold text-slate-500 mb-1">Bandera</label>
+                        <input type="text" id="custom-emoji-flag" maxlength="2" value="🚩" class="w-full text-center py-1.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-lg font-bold border dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-extrabold text-slate-500 mb-1">Normal</label>
+                        <input type="text" id="custom-emoji-face" maxlength="2" value="😊" class="w-full text-center py-1.5 bg-slate-100 dark:bg-slate-700 rounded-xl text-lg font-bold border dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <button onclick="applyCustomEmojis()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition">
+                    Aplicar Personalizados
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: FIN DE JUEGO / VICTORIA / DERROTA -->
+    <div id="modal-gameover" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border border-slate-200 dark:border-slate-700 transform transition-all scale-95 opacity-0 duration-200" id="gameover-content">
+            <div id="go-icon" class="text-6xl mb-3 animate-bounce">🏆</div>
+            <h2 id="go-title" class="text-2xl font-black text-slate-900 dark:text-white mb-2">¡Victoria!</h2>
+            <p id="go-message" class="text-sm text-slate-600 dark:text-slate-300 mb-4">Has completado el tablero exitosamente.</p>
+            
+            <div class="bg-slate-100 dark:bg-slate-700/50 p-3 rounded-2xl mb-5 flex justify-around text-center">
+                <div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Tiempo</div>
+                    <div id="go-time" class="text-lg font-black text-indigo-600 dark:text-indigo-400">0s</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Dificultad</div>
+                    <div id="go-diff" class="text-lg font-black text-indigo-600 dark:text-indigo-400">Principiante</div>
+                </div>
+            </div>
+
+            <button onclick="closeModal('modal-gameover'); resetGame();" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition duration-150">
+                Jugar de Nuevo
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: DIFICULTAD PERSONALIZADA -->
+    <div id="modal-custom" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                ⚙️ Tablero Personalizado
+            </h2>
+            <form onsubmit="event.preventDefault(); applyCustomDifficulty();" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Filas (8 - 25)</label>
+                    <input type="number" id="custom-rows" min="8" max="25" value="10" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Columnas (8 - 30)</label>
+                    <input type="number" id="custom-cols" min="8" max="30" value="10" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Minas (1 - 300)</label>
+                    <input type="number" id="custom-mines" min="1" max="300" value="15" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-custom')" class="flex-1 py-2 px-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-300">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 py-2 px-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">
+                        Aplicar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: MEJORES TIEMPOS -->
+    <div id="modal-scores" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-slate-700">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                🏆 Mejores Tiempos
+            </h2>
+            <div class="space-y-2.5 mb-5">
+                <div class="flex justify-between items-center p-2.5 bg-slate-100 dark:bg-slate-700/50 rounded-2xl">
+                    <span class="font-semibold text-xs sm:text-sm">Principiante</span>
+                    <span id="best-beginner" class="font-bold text-indigo-600 dark:text-indigo-400">--</span>
+                </div>
+                <div class="flex justify-between items-center p-2.5 bg-slate-100 dark:bg-slate-700/50 rounded-2xl">
+                    <span class="font-semibold text-xs sm:text-sm">Intermedio</span>
+                    <span id="best-intermediate" class="font-bold text-indigo-600 dark:text-indigo-400">--</span>
+                </div>
+                <div class="flex justify-between items-center p-2.5 bg-slate-100 dark:bg-slate-700/50 rounded-2xl">
+                    <span class="font-semibold text-xs sm:text-sm">Experto</span>
+                    <span id="best-expert" class="font-bold text-indigo-600 dark:text-indigo-400">--</span>
+                </div>
+                <div class="flex justify-between items-center p-2.5 bg-red-50 dark:bg-red-950/40 border border-red-500/30 rounded-2xl">
+                    <span class="font-bold text-xs sm:text-sm text-red-600 dark:text-red-400">💀 Modo Imposible</span>
+                    <span id="best-impossible" class="font-black text-red-600 dark:text-red-400">--</span>
+                </div>
+            </div>
+            <button onclick="closeModal('modal-scores')" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: INSTRUCCIONES -->
+    <div id="modal-help" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[85vh] overflow-y-auto custom-scroll">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-3">❓ Cómo Jugar</h2>
+            <div class="space-y-2.5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                <p>🔹 <strong>Objetivo:</strong> Descubrir todas las casillas sin minas.</p>
+                <p>🔹 <strong>💀 Modo Imposible:</strong> Un desafiante mapa de 30x20 con 220 minas (~37% densidad extrema). Requiere deduction matemática impecable.</p>
+                <p>🔹 <strong>Temas de Emojis:</strong> Personaliza los iconos al hacer clic en 🎨 o mediante el selector de temas.</p>
+                <p>🔹 <strong>Chording:</strong> Al hacer clic en un número ya descubierto con las banderas adyacentes completas, se despejan automáticamente los casilleros restantes.</p>
+            </div>
+            <button onclick="closeModal('modal-help')" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">
+                ¡Entendido!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // PAQUETES DE TEMAS DE EMOJIS
+        const EMOJI_THEMES = {
+            classic: {
+                id: 'classic',
+                name: 'Clásico',
+                icon: '😊',
+                faceNormal: '😊',
+                faceScared: '😮',
+                faceWin: '😎',
+                faceLose: '😵',
+                mine: '💣',
+                flag: '🚩',
+                question: '❓'
+            },
+            inferno: {
+                id: 'inferno',
+                name: 'Infierno / Imposible',
+                icon: '💀',
+                faceNormal: '💀',
+                faceScared: '😱',
+                faceWin: '👑',
+                faceLose: '☠️',
+                mine: '🔥',
+                flag: '🖤',
+                question: '❓'
+            },
+            galactic: {
+                id: 'galactic',
+                name: 'Galáctico',
+                icon: '👽',
+                faceNormal: '👽',
+                faceScared: '🛸',
+                faceWin: '🚀',
+                faceLose: '💥',
+                mine: '🛸',
+                flag: '🛰️',
+                question: '🪐'
+            },
+            pirate: {
+                id: 'pirate',
+                name: 'Pirata',
+                icon: '🏴‍☠️',
+                faceNormal: '🏴‍☠️',
+                faceScared: '🌊',
+                faceWin: '👑',
+                faceLose: '💀',
+                mine: '☠️',
+                flag: '⚓',
+                question: '🦜'
+            },
+            cyberpunk: {
+                id: 'cyberpunk',
+                name: 'Ciberpunk',
+                icon: '🤖',
+                faceNormal: '🤖',
+                faceScared: '⚡',
+                faceWin: '🦾',
+                faceLose: '🔌',
+                mine: '👾',
+                flag: '🛰️',
+                question: '💾'
+            },
+            pets: {
+                id: 'pets',
+                name: 'Mascotas',
+                icon: '🐶',
+                faceNormal: '🐶',
+                faceScared: '🙀',
+                faceWin: '🏆',
+                faceLose: '😿',
+                mine: '🦴',
+                flag: '🐾',
+                question: '🐕'
+            },
+            fantasy: {
+                id: 'fantasy',
+                name: 'Fantasía',
+                icon: '🧙‍♂️',
+                faceNormal: '🧙‍♂️',
+                faceScared: '🔮',
+                faceWin: '🗡️',
+                faceLose: '💀',
+                mine: '🐉',
+                flag: '🛡️',
+                question: '📜'
+            }
+        };
+
+        const CONFIGS = {
+            beginner: { rows: 9, cols: 9, mines: 10, name: 'Principiante' },
+            intermediate: { rows: 16, cols: 16, mines: 40, name: 'Intermedio' },
+            expert: { rows: 16, cols: 30, mines: 99, name: 'Experto' },
+            impossible: { rows: 20, cols: 30, mines: 220, name: 'Modo Imposible' },
+            custom: { rows: 10, cols: 10, mines: 15, name: 'Personalizado' }
+        };
+
+        // Estado Global del Juego
+        let currentThemeKey = 'classic';
+        let currentEmojiTheme = { ...EMOJI_THEMES.classic };
+
+        let currentDiffKey = 'beginner';
+        let rows = CONFIGS.beginner.rows;
+        let cols = CONFIGS.beginner.cols;
+        let totalMines = CONFIGS.beginner.mines;
+
+        let board = [];
+        let gameState = 'ready'; // 'ready', 'playing', 'won', 'lost'
+        let firstClick = true;
+        let flagsCount = 0;
+        let timer = 0;
+        let timerInterval = null;
+        let mobileMode = 'reveal'; // 'reveal' | 'flag'
+        let audioEnabled = true;
+
+        // Web Audio API Synthesizer
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) audioCtx = new AudioCtx();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!audioEnabled) return;
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+
+            if (type === 'click') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(420, now);
+                osc.frequency.exponentialRampToValueAtTime(130, now + 0.04);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(now + 0.04);
+            } 
+            else if (type === 'flag') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(900, now + 0.06);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(now + 0.06);
+            } 
+            else if (type === 'impossible_alarm') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(now + 0.3);
+            }
+            else if (type === 'theme') {
+                const freqs = [440, 554.37, 659.25];
+                freqs.forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, now + i * 0.05);
+                    gain.gain.setValueAtTime(0.12, now + i * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.1);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + i * 0.05);
+                    osc.stop(now + i * 0.05 + 0.1);
+                });
+            }
+            else if (type === 'explode') {
+                const bufferSize = ctx.sampleRate * 0.5;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+
+                const gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+                noise.start();
+            } 
+            else if (type === 'win') {
+                const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                freqs.forEach((f, index) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(f, now + index * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + index * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + index * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now + index * 0.08);
+                    osc.stop(now + index * 0.08 + 0.25);
+                });
+            }
+        }
+
+        function initBoard() {
+            board = [];
+            for (let r = 0; r < rows; r++) {
+                const row = [];
+                for (let c = 0; c < cols; c++) {
+                    row.push({
+                        r, c,
+                        isMine: false,
+                        revealed: false,
+                        state: 'none', // 'none' | 'flag' | 'question'
+                        neighborMines: 0
+                    });
+                }
+                board.push(row);
+            }
+            renderBoard();
+        }
+
+        function generateMines(safeR, safeC) {
+            let minesPlaced = 0;
+            while (minesPlaced < totalMines) {
+                const r = Math.floor(Math.random() * rows);
+                const c = Math.floor(Math.random() * cols);
+
+                // Zona segura para el primer clic
+                const isSafeZone = Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1;
+
+                if (!board[r][c].isMine && !isSafeZone) {
+                    board[r][c].isMine = true;
+                    minesPlaced++;
+                }
+            }
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!board[r][c].isMine) {
+                        board[r][c].neighborMines = countNeighbors(r, c, cell => cell.isMine);
+                    }
+                }
+            }
+        }
+
+        function countNeighbors(r, c, predicate) {
+            let count = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue;
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                        if (predicate(board[nr][nc])) count++;
+                    }
+                }
+            }
+            return count;
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            boardEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = board[r][c];
+                    const cellEl = document.createElement('div');
+                    cellEl.id = `cell-${r}-${c}`;
+                    cellEl.className = 'cell rounded-lg cursor-pointer text-center select-none shadow-sm font-bold ';
+
+                    updateCellAppearance(cellEl, cell);
+
+                    cellEl.addEventListener('click', (e) => handleCellClick(r, c, e));
+                    cellEl.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleRightClick(r, c);
+                    });
+
+                    let longPressTimer;
+                    cellEl.addEventListener('touchstart', () => {
+                        longPressTimer = setTimeout(() => {
+                            handleRightClick(r, c);
+                        }, 380);
+                    }, { passive: true });
+
+                    cellEl.addEventListener('touchend', () => clearTimeout(longPressTimer));
+                    cellEl.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+                    cellEl.addEventListener('mousedown', () => {
+                        if (gameState === 'playing' || gameState === 'ready') {
+                            setFaceEmoji(currentEmojiTheme.faceScared);
+                        }
+                    });
+                    cellEl.addEventListener('mouseup', () => {
+                        if (gameState === 'playing' || gameState === 'ready') {
+                            setFaceEmoji(currentEmojiTheme.faceNormal);
+                        }
+                    });
+
+                    boardEl.appendChild(cellEl);
+                }
+            }
+            updateCounters();
+            updateFaceState();
+        }
+
+        function updateCellAppearance(el, cell) {
+            if (cell.revealed) {
+                el.classList.remove('cell-unrevealed', 'bg-slate-200', 'dark:bg-slate-700', 'hover:bg-slate-300', 'dark:hover:bg-slate-600');
+                el.classList.add('bg-slate-100', 'dark:bg-slate-900', 'border', 'border-slate-300', 'dark:border-slate-800');
+
+                if (cell.isMine) {
+                    el.classList.add('bg-red-600', 'text-white');
+                    el.innerText = currentEmojiTheme.mine;
+                } else if (cell.neighborMines > 0) {
+                    el.innerText = cell.neighborMines;
+                    el.className = `cell rounded-lg text-center font-black bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 num-${cell.neighborMines}`;
+                } else {
+                    el.innerText = '';
+                }
+            } else {
+                el.classList.add('cell-unrevealed', 'bg-slate-200', 'dark:bg-slate-700', 'hover:bg-slate-300', 'dark:hover:bg-slate-600');
+                if (cell.state === 'flag') {
+                    el.innerText = currentEmojiTheme.flag;
+                } else if (cell.state === 'question') {
+                    el.innerText = currentEmojiTheme.question;
+                } else {
+                    el.innerText = '';
+                }
+            }
+        }
+
+        function handleCellClick(r, c) {
+            if (gameState === 'won' || gameState === 'lost') return;
+
+            if (mobileMode === 'flag') {
+                handleRightClick(r, c);
+                return;
+            }
+
+            const cell = board[r][c];
+
+            if (cell.state === 'flag') return;
+
+            if (firstClick) {
+                firstClick = false;
+                gameState = 'playing';
+                startTimer();
+                generateMines(r, c);
+            }
+
+            if (cell.revealed) {
+                if (cell.neighborMines > 0) {
+                    const flaggedNeighbors = countNeighbors(r, c, n => n.state === 'flag');
+                    if (flaggedNeighbors === cell.neighborMines) {
+                        chordCell(r, c);
+                    }
+                }
+                return;
+            }
+
+            revealCell(r, c);
+            checkWinCondition();
+        }
+
+        function revealCell(r, c) {
+            const cell = board[r][c];
+            if (cell.revealed || cell.state === 'flag') return;
+
+            cell.revealed = true;
+            const el = document.getElementById(`cell-${r}-${c}`);
+            updateCellAppearance(el, cell);
+
+            if (cell.isMine) {
+                gameOver(false, r, c);
+                return;
+            }
+
+            playSound('click');
+
+            if (cell.neighborMines === 0) {
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                            if (!board[nr][nc].revealed) {
+                                revealCell(nr, nc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function chordCell(r, c) {
+            let triggeredMine = false;
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                        const neighbor = board[nr][nc];
+                        if (!neighbor.revealed && neighbor.state !== 'flag') {
+                            revealCell(nr, nc);
+                            if (neighbor.isMine) triggeredMine = true;
+                        }
+                    }
+                }
+            }
+            if (!triggeredMine) playSound('click');
+        }
+
+        function handleRightClick(r, c) {
+            if (gameState === 'won' || gameState === 'lost') return;
+
+            const cell = board[r][c];
+            if (cell.revealed) return;
+
+            if (cell.state === 'none') {
+                cell.state = 'flag';
+                flagsCount++;
+                playSound('flag');
+            } else if (cell.state === 'flag') {
+                cell.state = 'question';
+                flagsCount--;
+                playSound('flag');
+            } else {
+                cell.state = 'none';
+                playSound('click');
+            }
+
+            const el = document.getElementById(`cell-${r}-${c}`);
+            updateCellAppearance(el, cell);
+            updateCounters();
+        }
+
+        function checkWinCondition() {
+            if (gameState === 'lost') return;
+
+            let unrevealedSafeCells = 0;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = board[r][c];
+                    if (!cell.isMine && !cell.revealed) {
+                        unrevealedSafeCells++;
+                    }
+                }
+            }
+
+            if (unrevealedSafeCells === 0) {
+                gameOver(true);
+            }
+        }
+
+        function gameOver(won, hitR = null, hitC = null) {
+            stopTimer();
+            gameState = won ? 'won' : 'lost';
+
+            updateFaceState();
+
+            if (!won) {
+                const gameFrame = document.getElementById('game-frame');
+                gameFrame.classList.remove('animate-shake');
+                void gameFrame.offsetWidth;
+                gameFrame.classList.add('animate-shake');
+            }
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = board[r][c];
+                    const el = document.getElementById(`cell-${r}-${c}`);
+
+                    if (cell.isMine) {
+                        if (!won && r === hitR && c === hitC) {
+                            el.classList.add('bg-red-600', 'animate-pulse');
+                        } else if (cell.state !== 'flag') {
+                            cell.revealed = true;
+                            updateCellAppearance(el, cell);
+                        }
+                    } else if (cell.state === 'flag') {
+                        el.innerText = '❌';
+                        el.classList.add('bg-red-200', 'dark:bg-red-950');
+                    }
+                }
+            }
+
+            if (won) {
+                playSound('win');
+                triggerConfetti();
+                saveHighScore(currentDiffKey, timer);
+                showGameOverModal(true);
+            } else {
+                playSound('explode');
+                showGameOverModal(false);
+            }
+        }
+
+        function setEmojiTheme(themeKey) {
+            if (EMOJI_THEMES[themeKey]) {
+                currentThemeKey = themeKey;
+                currentEmojiTheme = { ...EMOJI_THEMES[themeKey] };
+            }
+            applyEmojiThemeUpdates();
+        }
+
+        function cycleEmojiTheme() {
+            const keys = Object.keys(EMOJI_THEMES);
+            const currentIndex = keys.indexOf(currentThemeKey);
+            const nextKey = keys[(currentIndex + 1) % keys.length];
+            setEmojiTheme(nextKey);
+            playSound('theme');
+        }
+
+        function applyEmojiThemeUpdates() {
+            document.getElementById('header-logo').innerText = currentEmojiTheme.mine;
+            document.getElementById('current-theme-icon').innerText = currentEmojiTheme.faceNormal;
+            document.getElementById('mobile-flag-icon').innerText = currentEmojiTheme.flag;
+
+            document.getElementById('custom-emoji-mine').value = currentEmojiTheme.mine;
+            document.getElementById('custom-emoji-flag').value = currentEmojiTheme.flag;
+            document.getElementById('custom-emoji-face').value = currentEmojiTheme.faceNormal;
+
+            updateFaceState();
+            renderQuickThemePills();
+            renderThemeModalGrid();
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const el = document.getElementById(`cell-${r}-${c}`);
+                    if (el) updateCellAppearance(el, board[r][c]);
+                }
+            }
+        }
+
+        function applyCustomEmojis() {
+            const mine = document.getElementById('custom-emoji-mine').value || '💣';
+            const flag = document.getElementById('custom-emoji-flag').value || '🚩';
+            const face = document.getElementById('custom-emoji-face').value || '😊';
+
+            currentThemeKey = 'custom';
+            currentEmojiTheme = {
+                id: 'custom',
+                name: 'Personalizado',
+                icon: face,
+                faceNormal: face,
+                faceScared: '😮',
+                faceWin: '😎',
+                faceLose: '😵',
+                mine: mine,
+                flag: flag,
+                question: '❓'
+            };
+
+            applyEmojiThemeUpdates();
+            closeModal('modal-emoji-theme');
+            playSound('theme');
+        }
+
+        function handleFaceClick(e) {
+            resetGame();
+        }
+
+        function updateFaceState() {
+            if (gameState === 'won') {
+                setFaceEmoji(currentEmojiTheme.faceWin);
+            } else if (gameState === 'lost') {
+                setFaceEmoji(currentEmojiTheme.faceLose);
+            } else {
+                setFaceEmoji(currentEmojiTheme.faceNormal);
+            }
+        }
+
+        function setFaceEmoji(emoji) {
+            document.getElementById('face-emoji').innerText = emoji;
+        }
+
+        function renderQuickThemePills() {
+            const container = document.getElementById('quick-theme-pills');
+            container.innerHTML = '';
+
+            Object.values(EMOJI_THEMES).forEach(theme => {
+                const isActive = theme.id === currentThemeKey;
+                const btn = document.createElement('button');
+                btn.onclick = () => {
+                    setEmojiTheme(theme.id);
+                    playSound('theme');
+                };
+                btn.className = `flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                    isActive 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200'
+                }`;
+                btn.innerHTML = `<span>${theme.icon}</span> <span>${theme.name}</span>`;
+                container.appendChild(btn);
+            });
+        }
+
+        function renderThemeModalGrid() {
+            const grid = document.getElementById('emoji-theme-grid');
+            grid.innerHTML = '';
+
+            Object.values(EMOJI_THEMES).forEach(theme => {
+                const isActive = theme.id === currentThemeKey;
+                const card = document.createElement('div');
+                card.onclick = () => {
+                    setEmojiTheme(theme.id);
+                    closeModal('modal-emoji-theme');
+                    playSound('theme');
+                };
+                card.className = `p-3 rounded-2xl border-2 cursor-pointer transition flex items-center justify-between ${
+                    isActive 
+                    ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/50' 
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-2xl">${theme.icon}</span>
+                        <div>
+                            <div class="text-xs font-bold text-slate-800 dark:text-white">${theme.name}</div>
+                            <div class="text-[10px] text-slate-400">${theme.flag} ${theme.mine} ${theme.faceWin}</div>
+                        </div>
+                    </div>
+                    ${isActive ? '<span class="text-xs font-bold text-indigo-600">✓</span>' : ''}
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function startTimer() {
+            stopTimer();
+            timer = 0;
+            updateCounters();
+            timerInterval = setInterval(() => {
+                timer = Math.min(999, timer + 1);
+                updateCounters();
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function updateCounters() {
+            const mineCounterEl = document.getElementById('mine-counter');
+            const timerCounterEl = document.getElementById('timer-counter');
+
+            const remainingMines = totalMines - flagsCount;
+            mineCounterEl.innerText = String(Math.max(-99, Math.min(999, remainingMines))).padStart(3, '0');
+            timerCounterEl.innerText = String(timer).padStart(3, '0');
+        }
+
+        function resetGame() {
+            stopTimer();
+            gameState = 'ready';
+            firstClick = true;
+            flagsCount = 0;
+            timer = 0;
+            initBoard();
+        }
+
+        function setDifficulty(key) {
+            currentDiffKey = key;
+            const config = CONFIGS[key];
+            rows = config.rows;
+            cols = config.cols;
+            totalMines = config.mines;
+
+            const badge = document.getElementById('impossible-badge');
+            const gameFrame = document.getElementById('game-frame');
+
+            // Resetear estilos de todos los botones de dificultad
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'bg-red-600');
+                btn.classList.add('bg-slate-200', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+            });
+
+            const activeBtn = document.getElementById(`diff-${key}`);
+
+            if (key === 'impossible') {
+                badge.classList.remove('hidden');
+                gameFrame.classList.add('impossible-frame', 'impossible-active');
+                if (activeBtn) {
+                    activeBtn.classList.remove('bg-slate-200', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+                    activeBtn.classList.add('bg-red-600', 'text-white');
+                }
+                setEmojiTheme('inferno');
+                playSound('impossible_alarm');
+            } else {
+                badge.classList.add('hidden');
+                gameFrame.classList.remove('impossible-frame', 'impossible-active');
+                if (activeBtn) {
+                    activeBtn.classList.remove('bg-slate-200', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+                    activeBtn.classList.add('bg-indigo-600', 'text-white');
+                }
+            }
+
+            resetGame();
+        }
+
+        function applyCustomDifficulty() {
+            const r = parseInt(document.getElementById('custom-rows').value) || 10;
+            const c = parseInt(document.getElementById('custom-cols').value) || 10;
+            let m = parseInt(document.getElementById('custom-mines').value) || 15;
+
+            const validR = Math.max(8, Math.min(25, r));
+            const validC = Math.max(8, Math.min(30, c));
+            const maxMines = Math.floor(validR * validC * 0.7);
+            const validM = Math.max(1, Math.min(maxMines, m));
+
+            CONFIGS.custom.rows = validR;
+            CONFIGS.custom.cols = validC;
+            CONFIGS.custom.mines = validM;
+
+            closeModal('modal-custom');
+            setDifficulty('custom');
+        }
+
+        function saveHighScore(diffKey, time) {
+            if (diffKey === 'custom') return;
+            const currentBest = localStorage.getItem(`buscaminas_best_${diffKey}`);
+            if (!currentBest || time < parseInt(currentBest)) {
+                localStorage.setItem(`buscaminas_best_${diffKey}`, time);
+                loadHighScores();
+            }
+        }
+
+        function loadHighScores() {
+            ['beginner', 'intermediate', 'expert', 'impossible'].forEach(key => {
+                const best = localStorage.getItem(`buscaminas_best_${key}`);
+                const el = document.getElementById(`best-${key}`);
+                if (el) el.innerText = best ? `${best}s` : '--';
+            });
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('icon-audio').innerText = audioEnabled ? '🔊' : '🔇';
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.getElementById('icon-theme').innerText = isDark ? '🌙' : '☀️';
+            localStorage.setItem('buscaminas_theme', isDark ? 'dark' : 'light');
+        }
+
+        function setMobileMode(mode) {
+            mobileMode = mode;
+            const btnReveal = document.getElementById('mode-reveal');
+            const btnFlag = document.getElementById('mode-flag');
+
+            if (mode === 'reveal') {
+                btnReveal.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow';
+                btnFlag.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600';
+            } else {
+                btnFlag.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow';
+                btnReveal.className = 'px-4 py-1.5 rounded-lg text-xs font-bold transition text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600';
+            }
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }
+        }
+
+        function showGameOverModal(won) {
+            const modal = document.getElementById('modal-gameover');
+            const content = document.getElementById('gameover-content');
+            const icon = document.getElementById('go-icon');
+            const title = document.getElementById('go-title');
+            const msg = document.getElementById('go-message');
+
+            icon.innerText = won ? currentEmojiTheme.faceWin : currentEmojiTheme.faceLose;
+            title.innerText = won ? '¡Felicidades, Ganaste!' : '¡Mina Detonada!';
+            msg.innerText = won 
+                ? (currentDiffKey === 'impossible' ? '¡Increíble! Has superado el MODO IMPOSIBLE.' : 'Despejaste el campo con maestría.')
+                : 'Haz pisado una mina. ¡Inténtalo de nuevo!';
+
+            document.getElementById('go-time').innerText = `${timer}s`;
+            document.getElementById('go-diff').innerText = CONFIGS[currentDiffKey].name;
+
+            openModal('modal-gameover');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444'];
+
+            for (let i = 0; i < 140; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 0.7) * 17,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 8 + 4,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 12
+                });
+            }
+
+            const render = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.28;
+                    p.rotation += p.rotationSpeed;
+
+                    if (p.y < canvas.height) alive = true;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    ctx.restore();
+                });
+
+                if (alive) {
+                    requestAnimationFrame(render);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            };
+
+            render();
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('buscaminas_theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('icon-theme').innerText = '☀️';
+            }
+
+            loadHighScores();
+            setEmojiTheme('classic');
+            setDifficulty('beginner');
+        };
+    </script>
+</body>
+</html>
