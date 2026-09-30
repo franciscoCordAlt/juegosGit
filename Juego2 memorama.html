@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorama | Modo Oscuro</title>
+    <style>
+        /* =========================================
+           VARIABLES DE TEMA (MODO OSCURO POR DEFECTO)
+           ========================================= */
+        :root {
+            /* Paleta Oscura (Default) */
+            --bg-color: #111827; /* Fondo general oscuro */
+            --card-container-bg: #1f2937; /* Fondo del contenedor */
+            --text-color: #f9fafb; /* Texto claro */
+            --primary-color: #6366f1; /* Indigo vibrante */
+            --primary-hover: #4f46e5;
+            --card-front-bg: #374151; /* Fondo de la cara con emoji */
+            --card-border: #4b5563; /* Borde sutil */
+        }
+
+        /* Variables para el Modo Claro */
+        body.light-theme {
+            --bg-color: #f3f4f6;
+            --card-container-bg: #ffffff;
+            --text-color: #1f2937;
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --card-front-bg: #ffffff;
+            --card-border: #e5e7eb;
+        }
+
+        /* =========================================
+           RESETEO Y ESTILOS BASE
+           ========================================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease; /* Transición suave de tema */
+        }
+
+        /* =========================================
+           DISEÑO DE LA INTERFAZ (UI)
+           ========================================= */
+        .game-container {
+            background: var(--card-container-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+        }
+
+        .theme-btn {
+            background-color: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--card-border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-btn:hover {
+            background-color: var(--card-front-bg);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* =========================================
+           DISEÑO DEL TABLERO Y CARTAS (CSS 3D)
+           ========================================= */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            perspective: 1000px; 
+        }
+
+        .card {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+
+        .card.flip {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Reverso de la carta (El patrón que se ve antes de voltear) */
+        .card-back {
+            background-color: var(--primary-color);
+            background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 25%, transparent 25%), 
+                              linear-gradient(225deg, rgba(255,255,255,0.1) 25%, transparent 25%), 
+                              linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), 
+                              linear-gradient(315deg, rgba(255,255,255,0.1) 25%, transparent 25%);
+            background-position: 10px 0, 10px 0, 0 0, 0 0;
+            background-size: 20px 20px;
+            background-repeat: repeat;
+        }
+
+        /* Frente de la carta (Donde está el emoji) */
+        .card-front {
+            background-color: var(--card-front-bg);
+            border: 2px solid var(--card-border);
+            transform: rotateY(180deg);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="header">
+            <h1>Memorama</h1>
+            <!-- Botón para cambiar de tema -->
+            <button id="theme-toggle" class="theme-btn">☀️ Modo Claro</button>
+        </div>
+        
+        <div class="stats">
+            <span>Movimientos: <span id="moves-count">0</span></span>
+            <button onclick="initGame()">Reiniciar</button>
+        </div>
+        
+        <div class="board" id="board"></div>
+    </div>
+
+    <script>
+        /* =========================================
+           LÓGICA DEL TEMA (DARK/LIGHT MODE)
+           ========================================= */
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        
+        themeToggleBtn.addEventListener('click', () => {
+            // Alternamos la clase en el body
+            document.body.classList.toggle('light-theme');
+            
+            // Cambiamos el texto y el icono del botón dependiendo del estado actual
+            if (document.body.classList.contains('light-theme')) {
+                themeToggleBtn.innerHTML = '🌙 Modo Oscuro';
+            } else {
+                themeToggleBtn.innerHTML = '☀️ Modo Claro';
+            }
+        });
+
+        /* =========================================
+           LÓGICA DEL JUEGO
+           ========================================= */
+        const emojis = ['👾', '👻', '👽', '🤖', '🎃', '💀', '💩', '🤡'];
+        let cardsArray = [...emojis, ...emojis]; 
+        
+        let hasFlippedCard = false;
+        let lockBoard = false; 
+        let firstCard, secondCard;
+        let moves = 0;
+        let matchedPairs = 0;
+
+        const boardElement = document.getElementById('board');
+        const movesElement = document.getElementById('moves-count');
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function initGame() {
+            boardElement.innerHTML = ''; 
+            cardsArray = shuffle(cardsArray); 
+            
+            hasFlippedCard = false;
+            lockBoard = false;
+            firstCard = null;
+            secondCard = null;
+            moves = 0;
+            matchedPairs = 0;
+            movesElement.innerText = moves;
+
+            cardsArray.forEach(emoji => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card');
+                cardElement.dataset.emoji = emoji; 
+
+                cardElement.innerHTML = `
+                    <div class="card-face card-front">${emoji}</div>
+                    <div class="card-face card-back"></div>
+                `;
+
+                cardElement.addEventListener('click', flipCard);
+                boardElement.appendChild(cardElement);
+            });
+        }
+
+        function flipCard() {
+            if (lockBoard) return;
+            if (this === firstCard) return;
+
+            this.classList.add('flip');
+
+            if (!hasFlippedCard) {
+                hasFlippedCard = true;
+                firstCard = this;
+                return;
+            }
+
+            secondCard = this;
+            updateMoves();
+            checkForMatch();
+        }
+
+        function checkForMatch() {
+            let isMatch = firstCard.dataset.emoji === secondCard.dataset.emoji;
+            isMatch ? disableCards() : unflipCards();
+        }
+
+        function disableCards() {
+            firstCard.removeEventListener('click', flipCard);
+            secondCard.removeEventListener('click', flipCard);
+            matchedPairs++;
+
+            if (matchedPairs === emojis.length) {
+                // Pequeño timeout para dejar que termine la animación de giro
+                setTimeout(() => alert(`¡Completado en ${moves} movimientos!`), 500);
+            }
+
+            resetBoard();
+        }
+
+        function unflipCards() {
+            lockBoard = true; 
+
+            setTimeout(() => {
+                firstCard.classList.remove('flip');
+                secondCard.classList.remove('flip');
+                resetBoard();
+            }, 1000); 
+        }
+
+        function resetBoard() {
+            [hasFlippedCard, lockBoard] = [false, false];
+            [firstCard, secondCard] = [null, null];
+        }
+
+        function updateMoves() {
+            moves++;
+            movesElement.innerText = moves;
+        }
+
+        // Iniciar el juego
+        initGame();
+    </script>
+</body>
+</html>
