@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Ahorcado Pro - Edición Multicolor</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Dark Mode Background */
+        html.dark body {
+            background-color: #080c14;
+            color: #f3f4f6;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.12) 0%, transparent 40%);
+        }
+
+        /* Light Mode Background */
+        html:not(.dark) body {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(236, 72, 153, 0.1) 0%, transparent 40%);
+        }
+
+        /* Glassmorphism Panels */
+        html.dark .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        html:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Virtual Keyboard Styles */
+        .key-btn {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .key-btn:active:not(:disabled) {
+            transform: scale(0.92);
+        }
+
+        .key-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.4;
+        }
+
+        .letter-box {
+            transition: all 0.3s ease;
+        }
+
+        .letter-box.revealed {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* SVG Hangman Drawing Animations */
+        .gallows-part {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+
+        .draw-part {
+            stroke-dashoffset: 0 !important;
+        }
+
+        /* Vivid Neon Body Part Glow Filters */
+        .glow-head { filter: drop-shadow(0px 0px 6px #a855f7); }
+        .glow-torso { filter: drop-shadow(0px 0px 6px #06b6d4); }
+        .glow-arm-left { filter: drop-shadow(0px 0px 6px #10b981); }
+        .glow-arm-right { filter: drop-shadow(0px 0px 6px #f59e0b); }
+        .glow-leg-left { filter: drop-shadow(0px 0px 6px #f97316); }
+        .glow-leg-right { filter: drop-shadow(0px 0px 6px #ec4899); }
+        .glow-face { filter: drop-shadow(0px 0px 6px #ef4444); }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between p-2 sm:p-4">
+
+    <header class="w-full max-w-5xl mx-auto flex justify-between items-center p-3 mb-2 glass-panel rounded-2xl">
+        <div class="flex items-center space-x-3">
+            <div class="p-2.5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl border border-indigo-500/30">
+                <svg class="w-7 h-7 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    AHORCADO <span class="text-xs px-2 py-0.5 bg-indigo-500/20 border border-indigo-400/30 rounded-full text-indigo-600 dark:text-indigo-300">PRO</span>
+                </h1>
+                <p class="text-xs text-slate-500 dark:text-gray-400 font-medium">Edición Neón Multicolor</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <div class="text-right hidden sm:block">
+                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider block font-semibold">Racha</span>
+                <span id="streak-counter" class="text-lg font-bold text-amber-500 dark:text-amber-400 flex items-center justify-end gap-1">
+                    ⚡ 0
+                </span>
+            </div>
+
+            <!-- Theme Switcher Button -->
+            <button id="theme-btn" class="p-2.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 transition-colors border border-slate-300 dark:border-gray-700" title="Cambiar Tema (Claro/Oscuro)">
+                <svg id="theme-icon-sun" class="w-5 h-5 hidden text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg id="theme-icon-moon" class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+
+            <!-- Stats Button -->
+            <button id="stats-btn" class="p-2.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 transition-colors border border-slate-300 dark:border-gray-700" title="Estadísticas">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </button>
+
+            <!-- Audio Mute Button -->
+            <button id="sound-btn" class="p-2.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 transition-colors border border-slate-300 dark:border-gray-700" title="Activar/Desactivar Sonido">
+                <svg id="sound-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 my-auto">
+        
+        <!-- Left Panel: Colorful SVG Hangman Canvas -->
+        <section class="lg:col-span-5 glass-panel rounded-2xl p-5 flex flex-col justify-between items-center relative overflow-hidden">
+            <div class="w-full flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-gray-400 mb-2">
+                <span id="difficulty-badge" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                    NORMAL
+                </span>
+                <div class="flex items-center gap-1.5 bg-slate-200/80 dark:bg-gray-800/80 px-3 py-1 rounded-lg border border-slate-300 dark:border-gray-700">
+                    <svg class="w-4 h-4 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="timer-display" class="font-mono text-sm text-slate-800 dark:text-gray-200 font-bold">00:00</span>
+                </div>
+            </div>
+
+            <!-- SVG Vector Illustration -->
+            <div class="w-full h-56 sm:h-64 flex justify-center items-center my-2">
+                <svg id="hangman-svg" class="h-full w-auto" viewBox="0 0 200 220" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Base -->
+                    <line x1="20" y1="200" x2="180" y2="200" stroke-width="5" class="gallows-part stroke-slate-400 dark:stroke-gray-700" />
+                    <!-- Pillar -->
+                    <line x1="50" y1="200" x2="50" y2="20" stroke-width="5" class="gallows-part stroke-slate-400 dark:stroke-gray-700" />
+                    <!-- Beam -->
+                    <line x1="48" y1="20" x2="130" y2="20" stroke-width="5" class="gallows-part stroke-slate-400 dark:stroke-gray-700" />
+                    <!-- Rope -->
+                    <line x1="130" y1="20" x2="130" y2="50" stroke-width="4" class="gallows-part stroke-amber-600 dark:stroke-amber-500" />
+                    
+                    <!-- 1. Head (Violeta Neón #a855f7) -->
+                    <circle id="hang-part-0" class="gallows-part stroke-[#a855f7] glow-head" stroke-width="5" cx="130" cy="70" r="18" />
+                    <!-- 2. Torso (Cían Neón #06b6d4) -->
+                    <line id="hang-part-1" class="gallows-part stroke-[#06b6d4] glow-torso" stroke-width="5" x1="130" y1="88" x2="130" y2="138" />
+                    <!-- 3. Left Arm (Verde Neón #10b981) -->
+                    <line id="hang-part-2" class="gallows-part stroke-[#10b981] glow-arm-left" stroke-width="5" x1="130" y1="102" x2="102" y2="124" />
+                    <!-- 4. Right Arm (Amarillo Neón #f59e0b) -->
+                    <line id="hang-part-3" class="gallows-part stroke-[#f59e0b] glow-arm-right" stroke-width="5" x1="130" y1="102" x2="158" y2="124" />
+                    <!-- 5. Left Leg (Naranja Neón #f97316) -->
+                    <line id="hang-part-4" class="gallows-part stroke-[#f97316] glow-leg-left" stroke-width="5" x1="130" y1="138" x2="105" y2="178" />
+                    <!-- 6. Right Leg (Rosa Fucsia Neón #ec4899) -->
+                    <line id="hang-part-5" class="gallows-part stroke-[#ec4899] glow-leg-right" stroke-width="5" x1="130" y1="138" x2="155" y2="178" />
+                    
+                    <!-- 7. Face (Red Defeat #ef4444) -->
+                    <g id="hang-part-6" class="gallows-part stroke-[#ef4444] glow-face" stroke-width="3">
+                        <line x1="123" y1="64" x2="129" y2="70" />
+                        <line x1="129" y1="64" x2="123" y2="70" />
+                        <line x1="131" y1="64" x2="137" y2="70" />
+                        <line x1="137" y1="64" x2="131" y2="70" />
+                        <path d="M 123 79 Q 130 72 137 79" fill="none" />
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Hearts Left Bar -->
+            <div class="w-full flex justify-between items-center bg-slate-200/80 dark:bg-gray-900/60 rounded-xl p-3 border border-slate-300 dark:border-gray-800">
+                <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Intentos restantes</span>
+                <div id="hearts-container" class="flex space-x-1 text-red-500 text-base">
+                    <!-- Hearts generated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Word & On-screen Keyboard -->
+        <section class="lg:col-span-7 glass-panel rounded-2xl p-5 flex flex-col justify-between space-y-5">
+            <!-- Category & Hint Bar -->
+            <div class="flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-500 dark:text-gray-400 uppercase tracking-wider font-semibold">Categoría:</span>
+                    <span id="category-display" class="px-3 py-1 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                        TECNOLOGÍA
+                    </span>
+                </div>
+                
+                <button id="hint-btn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 text-xs font-semibold transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <span>Pedir Pista (<span id="hints-count">2</span>)</span>
+                </button>
+            </div>
+
+            <!-- Word Display Container -->
+            <div class="flex flex-col items-center justify-center my-auto py-4">
+                <div id="word-container" class="flex flex-wrap justify-center gap-1.5 sm:gap-2.5 max-w-full">
+                    <!-- Word boxes dynamically generated -->
+                </div>
+                <p id="hint-text" class="text-xs sm:text-sm text-amber-600 dark:text-amber-300/90 font-medium italic mt-4 text-center min-h-[1.5rem] px-2"></p>
+            </div>
+
+            <!-- Virtual Keyboard -->
+            <div class="w-full">
+                <div id="keyboard" class="flex flex-col gap-1.5 sm:gap-2 max-w-xl mx-auto">
+                    <!-- Keyboard rows dynamically rendered -->
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-gray-800">
+                <button id="config-btn" class="text-xs font-semibold text-slate-500 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200 transition-colors flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Ajustes
+                </button>
+
+                <button id="restart-btn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-90 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition-all transform active:scale-95 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Siguiente Palabra
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Confetti Overlay -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- Modal: Settings -->
+    <div id="config-modal" class="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-40 hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 space-y-6 border border-slate-300 dark:border-gray-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                    ⚙️ Configuración del Juego
+                </h3>
+                <button id="close-config-btn" class="text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold">✕</button>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Dificultad</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button data-diff="easy" class="diff-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 transition-all">Fácil (8 int.)</button>
+                    <button data-diff="medium" class="diff-btn px-3 py-2 rounded-xl text-xs font-bold border border-indigo-500 bg-indigo-500/20 text-indigo-700 dark:text-indigo-300">Normal (6 int.)</button>
+                    <button data-diff="hard" class="diff-btn px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-gray-700 bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 transition-all">Difícil (5 int. + 45s)</button>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <div class="space-y-2">
+                <label class="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Categoría</label>
+                <select id="category-select" class="w-full bg-slate-100 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl p-2.5 text-sm font-semibold text-slate-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                    <option value="ALL">Todas las Categorías</option>
+                    <option value="TECNOLOGÍA">Tecnología</option>
+                    <option value="ANIMALES">Animales</option>
+                    <option value="PAÍSES">Países</option>
+                    <option value="PELÍCULAS">Películas</option>
+                    <option value="FRUTAS">Frutas</option>
+                    <option value="CIENCIA">Ciencia</option>
+                </select>
+            </div>
+
+            <button id="apply-config-btn" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-all">
+                Guardar Cambios
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Statistics -->
+    <div id="stats-modal" class="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-40 hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-6 space-y-6 border border-slate-300 dark:border-gray-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
+                    📊 Estadísticas del Jugador
+                </h3>
+                <button id="close-stats-btn" class="text-slate-400 hover:text-slate-700 dark:hover:text-white font-bold">✕</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-slate-100 dark:bg-gray-800/50 p-3 rounded-xl border border-slate-200 dark:border-gray-700/50">
+                    <span id="stat-played" class="text-2xl font-black text-indigo-600 dark:text-indigo-400">0</span>
+                    <span class="text-xs text-slate-500 dark:text-gray-400 font-semibold block">Partidas Jugadas</span>
+                </div>
+                <div class="bg-slate-100 dark:bg-gray-800/50 p-3 rounded-xl border border-slate-200 dark:border-gray-700/50">
+                    <span id="stat-winrate" class="text-2xl font-black text-emerald-600 dark:text-emerald-400">0%</span>
+                    <span class="text-xs text-slate-500 dark:text-gray-400 font-semibold block">% de Victorias</span>
+                </div>
+                <div class="bg-slate-100 dark:bg-gray-800/50 p-3 rounded-xl border border-slate-200 dark:border-gray-700/50">
+                    <span id="stat-streak" class="text-2xl font-black text-amber-500 dark:text-amber-400">0</span>
+                    <span class="text-xs text-slate-500 dark:text-gray-400 font-semibold block">Racha Actual</span>
+                </div>
+                <div class="bg-slate-100 dark:bg-gray-800/50 p-3 rounded-xl border border-slate-200 dark:border-gray-700/50">
+                    <span id="stat-best-streak" class="text-2xl font-black text-purple-600 dark:text-purple-400">0</span>
+                    <span class="text-xs text-slate-500 dark:text-gray-400 font-semibold block">Mejor Racha</span>
+                </div>
+            </div>
+
+            <button id="reset-stats-btn" class="w-full py-2.5 rounded-xl bg-slate-200 dark:bg-gray-800 hover:bg-red-500/20 text-red-500 dark:text-red-400 border border-slate-300 dark:border-gray-700 text-xs font-semibold transition-all">
+                Restablecer Estadísticas
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Endgame Banner -->
+    <div id="endgame-modal" class="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-lg flex items-center justify-center p-4 z-40 hidden">
+        <div class="glass-panel w-full max-w-sm rounded-2xl p-6 text-center space-y-5 border border-slate-300 dark:border-gray-700">
+            <div id="endgame-icon" class="w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl">
+                🏆
+            </div>
+
+            <div>
+                <h3 id="endgame-title" class="text-2xl font-black text-slate-800 dark:text-white">¡VICTORIA!</h3>
+                <p id="endgame-message" class="text-xs text-slate-500 dark:text-gray-400 mt-1 font-medium">Has adivinado la palabra con éxito.</p>
+            </div>
+
+            <div class="bg-slate-100 dark:bg-gray-900/80 p-3 rounded-xl border border-slate-200 dark:border-gray-800 space-y-1">
+                <span class="text-xs text-slate-400 dark:text-gray-500 uppercase tracking-wider block font-semibold">La palabra era:</span>
+                <span id="endgame-word" class="text-xl font-mono font-black text-indigo-600 dark:text-indigo-400 tracking-wider">PALABRA</span>
+            </div>
+
+            <button id="modal-next-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-90 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition-all">
+                Continuar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* -------------------------------------------------------------------------- */
+        /*                                WORD DATABASE                               */
+        /* -------------------------------------------------------------------------- */
+        const WORD_DATABASE = [
+            // TECNOLOGÍA
+            { word: 'ALGORITMO', category: 'TECNOLOGÍA', hint: 'Conjunto de instrucciones finitas para resolver un problema.' },
+            { word: 'DESARROLLADOR', category: 'TECNOLOGÍA', hint: 'Persona encargada de escribir código informático.' },
+            { word: 'INTELIGENCIA', category: 'TECNOLOGÍA', hint: 'Capacidad de razonar y aprender imitada por máquinas.' },
+            { word: 'COMPILADOR', category: 'TECNOLOGÍA', hint: 'Traduce código fuente a lenguaje ejecutable por la máquina.' },
+            { word: 'MICROPROCESADOR', category: 'TECNOLOGÍA', hint: 'El cerebro de cualquier ordenador o teléfono inteligente.' },
+            
+            // ANIMALES
+            { word: 'ORNITORRINCO', category: 'ANIMALES', hint: 'Mamífero semiacuático australiano con pico de pato.' },
+            { word: 'MURCIELAGO', category: 'ANIMALES', hint: 'Único mamífero con capacidad de vuelo activo.' },
+            { word: 'CAMALEON', category: 'ANIMALES', hint: 'Reptil famoso por cambiar de color según su entorno.' },
+            { word: 'GUEPARDO', category: 'ANIMALES', hint: 'El felino y animal terrestre más veloz del planeta.' },
+
+            // PAÍSES
+            { word: 'MADAGASCAR', category: 'PAÍSES', hint: 'Isla de la costa oriental de África con especies únicas.' },
+            { word: 'ARGENTINA', category: 'PAÍSES', hint: 'País sudamericano conocido por los Andes y el Tango.' },
+            { word: 'JAPON', category: 'PAÍSES', hint: 'Nación insular asiática famosa por la tecnología y su cultura ancestral.' },
+            { word: 'AUSTRALIA', category: 'PAÍSES', hint: 'País continente hogar de los canguros y koalas.' },
+
+            // PELÍCULAS
+            { word: 'INTERSTELLAR', category: 'PELÍCULAS', hint: 'Obra maestra de ciencia ficción sobre viajes en agujeros de gusano.' },
+            { word: 'GLADIADOR', category: 'PELÍCULAS', hint: 'Un general romano convertido en esclavo busca venganza.' },
+            { word: 'INCEPTION', category: 'PELÍCULAS', hint: 'Ladrones que se introducen en los sueños de las personas.' },
+            { word: 'TITANIC', category: 'PELÍCULAS', hint: 'Famoso romance a bordo de un trasatlántico en 1912.' },
+
+            // FRUTAS
+            { word: 'MARACUYA', category: 'FRUTAS', hint: 'Fruta tropical conocida como la fruta de la pasión.' },
+            { word: 'MANDARINA', category: 'FRUTAS', hint: 'Cítrico dulce y jugoso de piel fácil de pelar.' },
+            { word: 'FRAMBUESA', category: 'FRUTAS', hint: 'Pequeño fruto rojo silvestre de sabor ácido y dulce.' },
+            { word: 'ARANDANO', category: 'FRUTAS', hint: 'Baya oscura rica en antioxidantes.' },
+
+            // CIENCIA
+            { word: 'FOTOSINTESIS', category: 'CIENCIA', hint: 'Proceso de conversión de luz solar en energía química vegetal.' },
+            { word: 'NEURONA', category: 'CIENCIA', hint: 'Célula especializada en la transmisión de impulsos nerviosos.' },
+            { word: 'GRAVEDAD', category: 'CIENCIA', hint: 'Fuerza invisible que atrae la materia hacia el centro de la Tierra.' },
+            { word: 'TERMOGRA FIA', category: 'CIENCIA', hint: 'Medición de la temperatura a distancia mediante infrarrojos.' }
+        ];
+
+        /* -------------------------------------------------------------------------- */
+        /*                            WEB AUDIO SYNTHESIZER                           */
+        /* -------------------------------------------------------------------------- */
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playKeySound() {
+                if (!this.enabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.04);
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.04);
+            }
+
+            playCorrectSound() {
+                if (!this.enabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                osc.frequency.setValueAtTime(659.25, this.ctx.currentTime + 0.08); // E5
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.18);
+            }
+
+            playWrongSound() {
+                if (!this.enabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            playVictorySound() {
+                if (!this.enabled) return;
+                this.init();
+                const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.25);
+                });
+            }
+
+            playDefeatSound() {
+                if (!this.enabled) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(55, this.ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            }
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                            2D CANVAS CONFETTI                              */
+        /* -------------------------------------------------------------------------- */
+        class ConfettiEngine {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.animating = false;
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            trigger() {
+                this.particles = [];
+                const colors = ['#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#f97316', '#ec4899'];
+                for (let i = 0; i < 110; i++) {
+                    this.particles.push({
+                        x: this.canvas.width / 2,
+                        y: this.canvas.height / 2,
+                        vx: (Math.random() - 0.5) * 14,
+                        vy: (Math.random() - 0.7) * 14,
+                        size: Math.random() * 8 + 4,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        rotation: Math.random() * 360,
+                        rotSpeed: (Math.random() - 0.5) * 12
+                    });
+                }
+                if (!this.animating) {
+                    this.animating = true;
+                    this.loop();
+                }
+            }
+
+            loop() {
+                if (!this.animating) return;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.particles.forEach((p, idx) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.22; // Gravity
+                    p.rotation += p.rotSpeed;
+
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    this.ctx.rotate((p.rotation * Math.PI) / 180);
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    this.ctx.restore();
+
+                    if (p.y > this.canvas.height) this.particles.splice(idx, 1);
+                });
+
+                if (this.particles.length > 0) {
+                    requestAnimationFrame(() => this.loop());
+                } else {
+                    this.animating = false;
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                              HANGMAN GAME CORE                             */
+        /* -------------------------------------------------------------------------- */
+        class HangmanPro {
+            constructor() {
+                this.difficulty = 'medium'; // easy (8), medium (6), hard (5)
+                this.maxErrorsMap = { easy: 8, medium: 6, hard: 5 };
+                this.categoryFilter = 'ALL';
+
+                this.currentWordObj = null;
+                this.guessedLetters = new Set();
+                this.errors = 0;
+                this.hintsUsed = 0;
+                this.maxHints = 2;
+                this.timerInterval = null;
+                this.secondsElapsed = 0;
+                this.hardTimeLimit = 45; // seconds for hard mode
+                this.isGameOver = false;
+
+                // Load Theme Preferences
+                const savedTheme = localStorage.getItem('hangman_theme');
+                this.isDarkMode = savedTheme ? savedTheme === 'dark' : true;
+
+                // Load Saved Player Stats
+                this.stats = JSON.parse(localStorage.getItem('hangman_stats')) || {
+                    played: 0,
+                    wins: 0,
+                    streak: 0,
+                    bestStreak: 0
+                };
+
+                this.sound = new SoundSystem();
+                this.confetti = new ConfettiEngine('confetti-canvas');
+
+                this.initDOM();
+                this.applyTheme(this.isDarkMode);
+                this.bindEvents();
+                this.startNewGame();
+            }
+
+            initDOM() {
+                this.dom = {
+                    wordContainer: document.getElementById('word-container'),
+                    keyboard: document.getElementById('keyboard'),
+                    categoryDisplay: document.getElementById('category-display'),
+                    difficultyBadge: document.getElementById('difficulty-badge'),
+                    timerDisplay: document.getElementById('timer-display'),
+                    heartsContainer: document.getElementById('hearts-container'),
+                    hintBtn: document.getElementById('hint-btn'),
+                    hintsCount: document.getElementById('hints-count'),
+                    hintText: document.getElementById('hint-text'),
+                    streakCounter: document.getElementById('streak-counter'),
+                    soundBtn: document.getElementById('sound-btn'),
+                    soundIcon: document.getElementById('sound-icon'),
+                    themeBtn: document.getElementById('theme-btn'),
+                    themeIconSun: document.getElementById('theme-icon-sun'),
+                    themeIconMoon: document.getElementById('theme-icon-moon'),
+
+                    // Modals
+                    configModal: document.getElementById('config-modal'),
+                    statsModal: document.getElementById('stats-modal'),
+                    endgameModal: document.getElementById('endgame-modal'),
+
+                    // Stats DOM
+                    statPlayed: document.getElementById('stat-played'),
+                    statWinrate: document.getElementById('stat-winrate'),
+                    statStreak: document.getElementById('stat-streak'),
+                    statBestStreak: document.getElementById('stat-best-streak')
+                };
+
+                this.renderKeyboard();
+            }
+
+            applyTheme(isDark) {
+                this.isDarkMode = isDark;
+                const htmlEl = document.documentElement;
+                if (isDark) {
+                    htmlEl.classList.add('dark');
+                    this.dom.themeIconSun.classList.add('hidden');
+                    this.dom.themeIconMoon.classList.remove('hidden');
+                } else {
+                    htmlEl.classList.remove('dark');
+                    this.dom.themeIconSun.classList.remove('hidden');
+                    this.dom.themeIconMoon.classList.add('hidden');
+                }
+                localStorage.setItem('hangman_theme', isDark ? 'dark' : 'light');
+            }
+
+            bindEvents() {
+                // Main Buttons
+                document.getElementById('restart-btn').addEventListener('click', () => this.startNewGame());
+                document.getElementById('modal-next-btn').addEventListener('click', () => {
+                    this.toggleModal(this.dom.endgameModal, false);
+                    this.startNewGame();
+                });
+
+                // Theme Switcher
+                this.dom.themeBtn.addEventListener('click', () => this.applyTheme(!this.isDarkMode));
+
+                // Hint
+                this.dom.hintBtn.addEventListener('click', () => this.useHint());
+
+                // Modal Controllers
+                document.getElementById('config-btn').addEventListener('click', () => this.toggleModal(this.dom.configModal, true));
+                document.getElementById('close-config-btn').addEventListener('click', () => this.toggleModal(this.dom.configModal, false));
+                document.getElementById('apply-config-btn').addEventListener('click', () => this.applySettings());
+
+                document.getElementById('stats-btn').addEventListener('click', () => {
+                    this.updateStatsUI();
+                    this.toggleModal(this.dom.statsModal, true);
+                });
+                document.getElementById('close-stats-btn').addEventListener('click', () => this.toggleModal(this.dom.statsModal, false));
+                document.getElementById('reset-stats-btn').addEventListener('click', () => this.resetStats());
+
+                // Sound Toggle
+                this.dom.soundBtn.addEventListener('click', () => {
+                    this.sound.enabled = !this.sound.enabled;
+                    this.dom.soundIcon.style.opacity = this.sound.enabled ? '1' : '0.3';
+                });
+
+                // Difficulty Buttons Selection inside modal
+                document.querySelectorAll('.diff-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.diff-btn').forEach(b => {
+                            b.classList.remove('border-indigo-500', 'bg-indigo-500/20', 'text-indigo-700', 'dark:text-indigo-300');
+                            b.classList.add('border-slate-300', 'dark:border-gray-700', 'bg-slate-100', 'dark:bg-gray-800', 'text-slate-700', 'dark:text-gray-300');
+                        });
+                        e.target.classList.remove('border-slate-300', 'dark:border-gray-700', 'bg-slate-100', 'dark:bg-gray-800', 'text-slate-700', 'dark:text-gray-300');
+                        e.target.classList.add('border-indigo-500', 'bg-indigo-500/20', 'text-indigo-700', 'dark:text-indigo-300');
+                        this.difficulty = e.target.dataset.diff;
+                    });
+                });
+
+                // Physical Keyboard Listener
+                window.addEventListener('keydown', (e) => {
+                    if (this.isGameOver) return;
+                    const char = e.key.toUpperCase();
+                    if (/^[A-ZÑ]$/.test(char) && !this.guessedLetters.has(char)) {
+                        this.handleGuess(char);
+                    }
+                });
+            }
+
+            renderKeyboard() {
+                const layout = [
+                    ['Q','W','E','R','T','Y','U','I','O','P'],
+                    ['A','S','D','F','G','H','J','K','L','Ñ'],
+                    ['Z','X','C','V','B','N','M']
+                ];
+
+                this.dom.keyboard.innerHTML = '';
+                layout.forEach(row => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'flex justify-center gap-1 sm:gap-1.5';
+                    row.forEach(key => {
+                        const btn = document.createElement('button');
+                        btn.dataset.key = key;
+                        btn.textContent = key;
+                        btn.className = 'key-btn w-8 h-10 sm:w-11 sm:h-12 bg-slate-200/90 hover:bg-slate-300 text-slate-800 dark:bg-gray-800/90 dark:hover:bg-gray-700 dark:text-gray-200 font-bold rounded-lg text-sm border border-slate-300/80 dark:border-gray-700/60 shadow-md flex items-center justify-center';
+                        btn.addEventListener('click', () => this.handleGuess(key));
+                        rowDiv.appendChild(btn);
+                    });
+                    this.dom.keyboard.appendChild(rowDiv);
+                });
+            }
+
+            startNewGame() {
+                // Filter Categories
+                let pool = WORD_DATABASE;
+                if (this.categoryFilter !== 'ALL') {
+                    pool = WORD_DATABASE.filter(item => item.category === this.categoryFilter);
+                }
+                this.currentWordObj = pool[Math.floor(Math.random() * pool.length)];
+
+                // Reset Game Engine
+                this.guessedLetters.clear();
+                this.errors = 0;
+                this.hintsUsed = 0;
+                this.isGameOver = false;
+
+                // Hints Reset
+                this.dom.hintsCount.textContent = this.maxHints - this.hintsUsed;
+                this.dom.hintText.textContent = '';
+                this.dom.hintBtn.disabled = false;
+
+                // Header Badges
+                this.dom.categoryDisplay.textContent = this.currentWordObj.category;
+                this.dom.difficultyBadge.textContent = this.difficulty.toUpperCase();
+
+                // Reset SVG Elements
+                for (let i = 0; i <= 6; i++) {
+                    const el = document.getElementById(`hang-part-${i}`);
+                    if (el) el.classList.remove('draw-part');
+                }
+
+                // Reset Virtual Keyboard Buttons
+                document.querySelectorAll('.key-btn').forEach(btn => {
+                    btn.disabled = false;
+                    btn.className = 'key-btn w-8 h-10 sm:w-11 sm:h-12 bg-slate-200/90 hover:bg-slate-300 text-slate-800 dark:bg-gray-800/90 dark:hover:bg-gray-700 dark:text-gray-200 font-bold rounded-lg text-sm border border-slate-300/80 dark:border-gray-700/60 shadow-md flex items-center justify-center';
+                });
+
+                // Render Words & Hearts
+                this.renderWordBoxes();
+                this.renderHearts();
+
+                // Reset Timer
+                clearInterval(this.timerInterval);
+                this.secondsElapsed = 0;
+                this.updateTimerDisplay();
+                this.timerInterval = setInterval(() => {
+                    this.secondsElapsed++;
+                    this.updateTimerDisplay();
+                    
+                    // Hard Mode Time Out Check
+                    if (this.difficulty === 'hard' && this.secondsElapsed >= this.hardTimeLimit) {
+                        this.checkDefeat(true);
+                    }
+                }, 1000);
+
+                this.dom.streakCounter.textContent = `⚡ ${this.stats.streak}`;
+            }
+
+            renderWordBoxes() {
+                this.dom.wordContainer.innerHTML = '';
+                const word = this.currentWordObj.word;
+
+                for (let char of word) {
+                    const box = document.createElement('div');
+                    if (char === ' ') {
+                        box.className = 'w-5 sm:w-7 h-11 sm:h-14';
+                    } else {
+                        box.className = 'letter-box w-9 h-11 sm:w-12 sm:h-14 bg-slate-100 dark:bg-gray-900/90 border-2 border-slate-300 dark:border-gray-700 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-black font-mono uppercase text-indigo-600 dark:text-indigo-400 shadow-inner';
+                        if (this.guessedLetters.has(char)) {
+                            box.textContent = char;
+                            box.classList.add('revealed', 'border-indigo-500/50', 'bg-indigo-50', 'dark:bg-indigo-950/30');
+                        } else {
+                            box.textContent = '';
+                        }
+                    }
+                    this.dom.wordContainer.appendChild(box);
+                }
+            }
+
+            renderHearts() {
+                const max = this.maxErrorsMap[this.difficulty];
+                const remaining = max - this.errors;
+                let html = '';
+                for (let i = 0; i < max; i++) {
+                    if (i < remaining) {
+                        html += '❤ ';
+                    } else {
+                        html += '🖤 ';
+                    }
+                }
+                this.dom.heartsContainer.innerHTML = html;
+            }
+
+            handleGuess(letter) {
+                if (this.isGameOver || this.guessedLetters.has(letter)) return;
+
+                this.guessedLetters.add(letter);
+                this.sound.playKeySound();
+
+                const keyBtn = document.querySelector(`button[data-key="${letter}"]`);
+
+                if (this.currentWordObj.word.includes(letter)) {
+                    // Correct Guess
+                    this.sound.playCorrectSound();
+                    if (keyBtn) {
+                        keyBtn.classList.add('bg-emerald-500/20', 'border-emerald-500', 'text-emerald-700', 'dark:text-emerald-300');
+                        keyBtn.disabled = true;
+                    }
+                    this.renderWordBoxes();
+                    this.checkVictory();
+                } else {
+                    // Wrong Guess
+                    this.sound.playWrongSound();
+                    if (keyBtn) {
+                        keyBtn.classList.add('bg-red-500/20', 'border-red-500/40', 'text-red-700', 'dark:text-red-400/50');
+                        keyBtn.disabled = true;
+                    }
+
+                    // Map errors to the 7 SVG colorful parts
+                    const maxErrors = this.maxErrorsMap[this.difficulty];
+                    const partIndex = Math.floor((this.errors / maxErrors) * 7);
+                    const partEl = document.getElementById(`hang-part-${partIndex}`);
+                    if (partEl) partEl.classList.add('draw-part');
+
+                    this.errors++;
+                    this.renderHearts();
+                    this.checkDefeat();
+                }
+            }
+
+            useHint() {
+                if (this.hintsUsed >= this.maxHints || this.isGameOver) return;
+
+                this.hintsUsed++;
+                this.dom.hintsCount.textContent = this.maxHints - this.hintsUsed;
+                this.dom.hintText.textContent = `💡 Pista: ${this.currentWordObj.hint}`;
+
+                if (this.hintsUsed >= this.maxHints) {
+                    this.dom.hintBtn.disabled = true;
+                }
+            }
+
+            checkVictory() {
+                const cleanWord = this.currentWordObj.word.replace(/\s+/g, '');
+                const isWon = [...cleanWord].every(char => this.guessedLetters.has(char));
+                if (isWon) {
+                    this.isGameOver = true;
+                    clearInterval(this.timerInterval);
+                    this.sound.playVictorySound();
+                    this.confetti.trigger();
+
+                    // Update Player Statistics
+                    this.stats.played++;
+                    this.stats.wins++;
+                    this.stats.streak++;
+                    if (this.stats.streak > this.stats.bestStreak) {
+                        this.stats.bestStreak = this.stats.streak;
+                    }
+                    this.saveStats();
+
+                    setTimeout(() => {
+                        this.showEndgameModal(true);
+                    }, 500);
+                }
+            }
+
+            checkDefeat(timeOut = false) {
+                if (timeOut || this.errors >= this.maxErrorsMap[this.difficulty]) {
+                    this.isGameOver = true;
+                    clearInterval(this.timerInterval);
+                    this.sound.playDefeatSound();
+
+                    // Render all colorful parts on defeat
+                    for (let i = 0; i <= 6; i++) {
+                        const el = document.getElementById(`hang-part-${i}`);
+                        if (el) el.classList.add('draw-part');
+                    }
+
+                    this.stats.played++;
+                    this.stats.streak = 0;
+                    this.saveStats();
+
+                    setTimeout(() => {
+                        this.showEndgameModal(false, timeOut);
+                    }, 500);
+                }
+            }
+
+            showEndgameModal(isVictory, timeOut = false) {
+                const icon = document.getElementById('endgame-icon');
+                const title = document.getElementById('endgame-title');
+                const msg = document.getElementById('endgame-message');
+                const word = document.getElementById('endgame-word');
+
+                word.textContent = this.currentWordObj.word;
+
+                if (isVictory) {
+                    icon.className = 'w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+                    icon.textContent = '🏆';
+                    title.textContent = '¡VICTORIA!';
+                    title.className = 'text-2xl font-black text-emerald-600 dark:text-emerald-400';
+                    msg.textContent = `¡Adivinaste la palabra en ${this.secondsElapsed} segundos!`;
+                } else {
+                    icon.className = 'w-16 h-16 rounded-full mx-auto flex items-center justify-center text-3xl bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30';
+                    icon.textContent = '💀';
+                    title.textContent = '¡DERROTA!';
+                    title.className = 'text-2xl font-black text-red-600 dark:text-red-400';
+                    msg.textContent = timeOut ? '¡Se ha agotado el tiempo límite de la ronda!' : 'Te has quedado sin intentos disponibles.';
+                }
+
+                this.toggleModal(this.dom.endgameModal, true);
+            }
+
+            updateTimerDisplay() {
+                if (this.difficulty === 'hard') {
+                    const remaining = Math.max(0, this.hardTimeLimit - this.secondsElapsed);
+                    const secs = remaining.toString().padStart(2, '0');
+                    this.dom.timerDisplay.textContent = `00:${secs}`;
+                } else {
+                    const mins = Math.floor(this.secondsElapsed / 60).toString().padStart(2, '0');
+                    const secs = (this.secondsElapsed % 60).toString().padStart(2, '0');
+                    this.dom.timerDisplay.textContent = `${mins}:${secs}`;
+                }
+            }
+
+            toggleModal(modalEl, show) {
+                if (show) {
+                    modalEl.classList.remove('hidden');
+                } else {
+                    modalEl.classList.add('hidden');
+                }
+            }
+
+            applySettings() {
+                this.categoryFilter = document.getElementById('category-select').value;
+                this.toggleModal(this.dom.configModal, false);
+                this.startNewGame();
+            }
+
+            saveStats() {
+                localStorage.setItem('hangman_stats', JSON.stringify(this.stats));
+                this.dom.streakCounter.textContent = `⚡ ${this.stats.streak}`;
+            }
+
+            updateStatsUI() {
+                this.dom.statPlayed.textContent = this.stats.played;
+                const winrate = this.stats.played > 0 ? Math.round((this.stats.wins / this.stats.played) * 100) : 0;
+                this.dom.statWinrate.textContent = `${winrate}%`;
+                this.dom.statStreak.textContent = this.stats.streak;
+                this.dom.statBestStreak.textContent = this.stats.bestStreak;
+            }
+
+            resetStats() {
+                this.stats = { played: 0, wins: 0, streak: 0, bestStreak: 0 };
+                this.saveStats();
+                this.updateStatsUI();
+            }
+        }
+
+        // Initialize Game App
+        window.addEventListener('DOMContentLoaded', () => {
+            window.game = new HangmanPro();
+        });
+    </script>
+</body>
+</html>
