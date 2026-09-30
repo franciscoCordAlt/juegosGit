@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memoria de Colores y Emojis</title>
+
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --text: #1b2030;
+      --muted: #626b82;
+      --accent: #6f55e8;
+      --good: #1f9d5a;
+      --danger: #d9344b;
+      --panel-soft: rgba(27, 32, 48, .05);
+      --border: rgba(27, 32, 48, .10);
+      --shadow: rgba(28, 34, 55, .14);
+    }
+
+    body.dark-mode {
+      --bg: #0f1220;
+      --panel: #181c2f;
+      --text: #f4f6ff;
+      --muted: #aeb5d1;
+      --accent: #7c5cff;
+      --good: #35d07f;
+      --danger: #ff5b6e;
+      --panel-soft: rgba(255, 255, 255, .06);
+      --border: rgba(255, 255, 255, .09);
+      --shadow: rgba(0, 0, 0, .35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding: 10px 15px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 5px 18px var(--shadow);
+      transition: .2s;
+      z-index: 1000;
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+    }
+
+    .game {
+      width: min(92vw, 700px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: 0 20px 60px var(--shadow);
+      transition: background .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      text-align: center;
+      font-size: clamp(28px, 5vw, 42px);
+    }
+
+    .subtitle {
+      text-align: center;
+      margin: 0 0 22px;
+      color: var(--muted);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: var(--panel-soft);
+      border-radius: 14px;
+      padding: 12px;
+      text-align: center;
+      transition: background .25s ease;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .stat strong {
+      font-size: 22px;
+    }
+
+    .message {
+      min-height: 28px;
+      text-align: center;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+
+    .flash-good {
+      color: var(--good);
+    }
+
+    .flash-bad {
+      color: var(--danger);
+    }
+
+    .board {
+      width: min(82vw, 460px);
+      aspect-ratio: 1;
+      margin: 0 auto 22px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    .color-btn {
+      border: none;
+      border-radius: 24px;
+      cursor: pointer;
+      opacity: .88;
+      transform: scale(1);
+      transition:
+        transform .12s ease,
+        opacity .12s ease,
+        filter .12s ease,
+        box-shadow .12s ease;
+      box-shadow:
+        inset 0 0 0 3px rgba(255,255,255,.12),
+        0 10px 20px rgba(0,0,0,.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .color-btn:hover:not(:disabled) {
+      opacity: 1;
+      transform: scale(1.02);
+    }
+
+    .color-btn:active:not(:disabled),
+    .color-btn.lit {
+      transform: scale(.94);
+      opacity: 1;
+      filter: brightness(1.35);
+      box-shadow:
+        inset 0 0 0 4px rgba(255,255,255,.28),
+        0 0 28px rgba(255,255,255,.25);
+    }
+
+    .color-btn:disabled {
+      cursor: default;
+    }
+
+    .emoji {
+      font-size: clamp(42px, 9vw, 72px);
+      line-height: 1;
+      filter: drop-shadow(0 3px 3px rgba(0,0,0,.22));
+      pointer-events: none;
+    }
+
+    .red {
+      background: #ff4d61;
+    }
+
+    .blue {
+      background: #4d8dff;
+    }
+
+    .green {
+      background: #39d98a;
+    }
+
+    .yellow {
+      background: #ffd447;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button.control {
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      transition: transform .12s ease, opacity .12s ease;
+    }
+
+    button.control:hover {
+      transform: translateY(-1px);
+    }
+
+    button.control:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .secondary {
+      background: var(--panel-soft) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    .hint {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 520px) {
+      .game {
+        padding: 18px;
+      }
+
+      .board {
+        gap: 10px;
+      }
+
+      .color-btn {
+        border-radius: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <button id="themeToggle" class="theme-toggle" type="button">
+    🌙 Modo oscuro
+  </button>
+
+  <main class="game">
+    <h1>🧠 Memoria</h1>
+    <p class="subtitle">
+      Memoriza la secuencia de cuadros y sus emojis.
+    </p>
+
+    <section class="stats">
+      <div class="stat">
+        <span>Nivel</span>
+        <strong id="level">0</strong>
+      </div>
+
+      <div class="stat">
+        <span>Puntaje</span>
+        <strong id="score">0</strong>
+      </div>
+
+      <div class="stat">
+        <span>Récord</span>
+        <strong id="best">0</strong>
+      </div>
+    </section>
+
+    <div id="message" class="message">
+      Pulsa “Comenzar” para jugar.
+    </div>
+
+    <section class="board" aria-label="Cuadros de colores">
+      <button class="color-btn red" data-index="0" aria-label="Cuadro rojo">
+        <span class="emoji">🍎</span>
+      </button>
+
+      <button class="color-btn blue" data-index="1" aria-label="Cuadro azul">
+        <span class="emoji">🚀</span>
+      </button>
+
+      <button class="color-btn green" data-index="2" aria-label="Cuadro verde">
+        <span class="emoji">🐸</span>
+      </button>
+
+      <button class="color-btn yellow" data-index="3" aria-label="Cuadro amarillo">
+        <span class="emoji">⭐</span>
+      </button>
+    </section>
+
+    <div class="controls">
+      <button class="control" id="startBtn">
+        Comenzar
+      </button>
+
+      <button class="control secondary" id="resetBtn">
+        Reiniciar
+      </button>
+    </div>
+
+    <p class="hint">
+      Cada ronda agrega un cuadro más a la secuencia.
+    </p>
+  </main>
+
+  <script>
+    const buttons = [...document.querySelectorAll(".color-btn")];
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const messageEl = document.getElementById("message");
+    const levelEl = document.getElementById("level");
+    const scoreEl = document.getElementById("score");
+    const bestEl = document.getElementById("best");
+
+    const themeToggle = document.getElementById("themeToggle");
+
+    const emojiPool = [
+      "🍎", "🚀", "🐸", "⭐", "🍕", "🐱",
+      "⚽", "🔥", "🍩", "🦄", "🎮", "🍉",
+      "🐶", "🌈", "👾", "🍔", "🐵", "💎",
+      "🍓", "🦊", "🌟", "🎸", "🚗", "🐼"
+    ];
+
+    const colors = [0, 1, 2, 3];
+
+    let sequence = [];
+    let playerIndex = 0;
+    let level = 0;
+    let score = 0;
+    let acceptingInput = false;
+    let roundToken = 0;
+    let currentEmojis = [];
+
+    let best = Number(
+      localStorage.getItem("memoriaEmojisRecord") || 0
+    );
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function randomItem(array) {
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function shuffle(array) {
+      return [...array].sort(() => Math.random() - 0.5);
+    }
+
+    function generateEmojis() {
+      currentEmojis = shuffle(emojiPool).slice(0, buttons.length);
+
+      buttons.forEach((button, index) => {
+        button.querySelector(".emoji").textContent =
+          currentEmojis[index];
+      });
+    }
+
+    function randomColor() {
+      return randomItem(colors);
+    }
+
+    function updateUI() {
+      levelEl.textContent = level;
+      scoreEl.textContent = score;
+      bestEl.textContent = best;
+    }
+
+    function setMessage(text, type = "") {
+      messageEl.textContent = text;
+      messageEl.className = "message " + type;
+    }
+
+    async function flash(index, duration = 420) {
+      const btn = buttons[index];
+      if (!btn) return;
+
+      btn.classList.add("lit");
+      await wait(duration);
+      btn.classList.remove("lit");
+    }
+
+    function setButtonsEnabled(enabled) {
+      buttons.forEach(button => {
+        button.disabled = !enabled;
+      });
+    }
+
+    async function showSequence(token) {
+      acceptingInput = false;
+      setButtonsEnabled(false);
+
+      setMessage("Memoriza los cuadros y sus emojis…");
+
+      await wait(600);
+
+      for (const index of sequence) {
+        if (token !== roundToken) return;
+
+        await flash(index, 450);
+        await wait(150);
+      }
+
+      if (token !== roundToken) return;
+
+      playerIndex = 0;
+      acceptingInput = true;
+      setButtonsEnabled(true);
+
+      setMessage(
+        `Tu turno: cuadro ${playerIndex + 1} de ${sequence.length}.`
+      );
+    }
+
+    async function startGame() {
+      roundToken++;
+
+      sequence = [randomColor()];
+      playerIndex = 0;
+      level = 1;
+      score = 0;
+
+      generateEmojis();
+      updateUI();
+
+      startBtn.disabled = true;
+      startBtn.textContent = "Jugando…";
+
+      await showSequence(roundToken);
+    }
+
+    async function nextRound() {
+      sequence.push(randomColor());
+      level++;
+      score += 100;
+
+      /*
+       * Los emojis cambian al comenzar cada ronda.
+       * La nueva secuencia se muestra usando la nueva combinación.
+       */
+      generateEmojis();
+
+      updateUI();
+
+      await showSequence(roundToken);
+    }
+
+    function gameOver() {
+      acceptingInput = false;
+      setButtonsEnabled(false);
+
+      if (score > best) {
+        best = score;
+
+        localStorage.setItem(
+          "memoriaEmojisRecord",
+          String(best)
+        );
+      }
+
+      updateUI();
+
+      setMessage(
+        `¡Fin del juego! Llegaste al nivel ${level} con ${score} puntos.`,
+        "flash-bad"
+      );
+
+      startBtn.disabled = false;
+      startBtn.textContent = "Jugar otra vez";
+    }
+
+    buttons.forEach(button => {
+      button.addEventListener("click", async () => {
+        if (!acceptingInput) return;
+
+        const selected = Number(button.dataset.index);
+        const expected = sequence[playerIndex];
+
+        await flash(selected, 180);
+
+        if (selected !== expected) {
+          gameOver();
+          return;
+        }
+
+        playerIndex++;
+
+        if (playerIndex === sequence.length) {
+          acceptingInput = false;
+          setButtonsEnabled(false);
+
+          score += 50;
+          updateUI();
+
+          setMessage(
+            "¡Correcto! Preparando la siguiente ronda…",
+            "flash-good"
+          );
+
+          await wait(800);
+
+          if (roundToken > 0) {
+            await nextRound();
+          }
+        } else {
+          setMessage(
+            `¡Bien! Cuadro ${playerIndex + 1} de ${sequence.length}.`
+          );
+        }
+      });
+    });
+
+    resetBtn.addEventListener("click", () => {
+      roundToken++;
+
+      sequence = [];
+      playerIndex = 0;
+      level = 0;
+      score = 0;
+      acceptingInput = false;
+
+      generateEmojis();
+      setButtonsEnabled(false);
+
+      startBtn.disabled = false;
+      startBtn.textContent = "Comenzar";
+
+      updateUI();
+
+      setMessage("Pulsa “Comenzar” para jugar.");
+    });
+
+    /*
+     * Modo claro / oscuro
+     */
+    function applyTheme(theme) {
+      const dark = theme === "dark";
+
+      document.body.classList.toggle("dark-mode", dark);
+
+      themeToggle.textContent = dark
+        ? "☀️ Modo claro"
+        : "🌙 Modo oscuro";
+
+      localStorage.setItem(
+        "memoriaEmojisTema",
+        theme
+      );
+    }
+
+    const savedTheme =
+      localStorage.getItem("memoriaEmojisTema");
+
+    applyTheme(savedTheme || "light");
+
+    themeToggle.addEventListener("click", () => {
+      const dark =
+        document.body.classList.contains("dark-mode");
+
+      applyTheme(dark ? "light" : "dark");
+    });
+
+    /*
+     * Estado inicial
+     */
+    generateEmojis();
+    setButtonsEnabled(false);
+    updateUI();
+  </script>
+
+</body>
+</html>
